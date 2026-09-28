@@ -12,6 +12,10 @@ export const authController = {
     sendSuccess(res, await authService.login(req.body));
   },
 
+  async google(req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await authService.loginWithGoogle(req.body.idToken));
+  },
+
   /** Also used by the passport and document services to verify tokens over HTTP. */
   me(req: Request, res: Response): void {
     sendSuccess(res, { user: req.user });

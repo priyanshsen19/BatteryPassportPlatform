@@ -8,6 +8,8 @@ const envSchema = commonEnvSchema.extend({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters long'),
   JWT_EXPIRES_IN: z.string().default('1h'),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
+  // Optional: Google sign-in is disabled when no OAuth client id is configured.
+  GOOGLE_CLIENT_ID: z.string().optional(),
 });
 
 const env = loadEnv(envSchema);
@@ -26,6 +28,7 @@ export const config = {
     audience: 'bpp-services',
   },
   bcryptSaltRounds: env.BCRYPT_SALT_ROUNDS,
+  google: { clientId: env.GOOGLE_CLIENT_ID || undefined },
 } as const;
 
 export const logger = createLogger(config.serviceName, {

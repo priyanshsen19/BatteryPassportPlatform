@@ -22,6 +22,11 @@ export const loginSchema = z.object({
 export type RegisterInput = z.input<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 
+/** Body of POST /api/auth/google: a Google ID token obtained through OAuth. */
+export const googleAuthSchema = z.object({
+  idToken: z.string().min(1, 'idToken is required').max(4096),
+});
+
 export interface AuthUser {
   id: string;
   email: string;

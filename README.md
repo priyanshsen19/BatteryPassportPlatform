@@ -224,6 +224,9 @@ one is missing or invalid.
 | `PASSPORT_SERVICE_URL`                                                                                      | document, web                         | Internal passport service URL                                      |
 | `DOCUMENT_SERVICE_URL`                                                                                      | web                                   | Internal document service URL                                      |
 | `SESSION_COOKIE_SECURE`                                                                                     | web                                   | `true` when served over HTTPS                                      |
+| `GOOGLE_CLIENT_ID`                                                                                          | auth, web                             | Optional Google OAuth client id; Google sign-in is off when empty  |
+| `GOOGLE_CLIENT_SECRET`                                                                                      | web                                   | Optional Google OAuth client secret                                |
+| `PUBLIC_APP_URL`                                                                                            | web                                   | Public URL of the web app, used for the OAuth redirect URI         |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `NOTIFICATION_EMAIL_TO` | notification                          | Optional email delivery; logging only when `SMTP_HOST` is empty    |
 
 The frontend needs no `NEXT_PUBLIC_*` variables: the browser only talks to the Next.js server,
@@ -281,6 +284,7 @@ Validation failures (`422 VALIDATION_ERROR`) include `details: [{ "field", "mess
 | ------ | -------------------- | ------- | ------------------------------------ |
 | POST   | `/api/auth/register` | public  | `{ email, password, role }` → `201`  |
 | POST   | `/api/auth/login`    | public  | `{ email, password }` → JWT          |
+| POST   | `/api/auth/google`   | public  | `{ idToken }` (Google) → JWT         |
 | GET    | `/api/auth/me`       | any JWT | Current user; used by other services |
 
 ### Passport service (`:4002`)
@@ -373,6 +377,29 @@ Validation accepts battery categories `EV`, `LMT`, `Industrial`, `SLI`, `Portabl
   mirrors them.
 - Registration accepts `admin` or `user` as the assignment specifies. In a real deployment, admin
   accounts would be provisioned rather than self-registered.
+
+### Google sign-in (optional)
+
+Users can also sign in with Google. It is disabled until OAuth credentials are configured, and
+local startup never depends on it.
+
+- The web app runs the OAuth 2.0 authorization-code flow with PKCE and a `state` check on its
+  server, then sends Google's ID token to `POST /api/auth/google`.
+- The auth service verifies the token with `google-auth-library` (signature, issuer, expiry and
+  audience), requires a verified email, and issues the platform's normal JWT, so the rest of the
+  system is unchanged.
+- First sign-in creates an account with the `user` role. If the verified email already belongs to
+  an account, the Google identity is linked to it and its role is kept, so admin rights can never be
+  obtained through Google alone. Accounts created through Google have no password.
+
+To enable it:
+
+1. In Google Cloud Console, create an OAuth client ID of type **Web application**.
+2. Add the authorized redirect URI `http://localhost:3000/api/auth/google/callback` (or
+   `<your public URL>/api/auth/google/callback` when deployed).
+3. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `PUBLIC_APP_URL` in `.env` and restart:
+   `docker compose up -d auth-service web`. "Continue with Google" then appears on the sign-in and
+   registration pages.
 
 ## Kafka topics and payloads
 

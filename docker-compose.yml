@@ -88,6 +88,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
       BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS:-12}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     ports:
       - '${AUTH_SERVICE_PORT:-4001}:4001'
     depends_on:
@@ -185,6 +186,9 @@ services:
       PASSPORT_SERVICE_URL: ${PASSPORT_SERVICE_URL:-http://passport-service:4002}
       DOCUMENT_SERVICE_URL: ${DOCUMENT_SERVICE_URL:-http://document-service:4003}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:3000}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     ports:
       - '${WEB_PORT:-3000}:3000'
     depends_on:

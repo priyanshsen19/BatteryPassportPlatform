@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { AuthFormError } from '@/components/auth/auth-form-error';
+import { GoogleSignIn } from '@/components/auth/google-sign-in';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, fieldAria } from '@/components/ui/form-controls';
 import { Card } from '@/components/ui/surface';
@@ -81,6 +82,8 @@ export default function RegisterPage() {
           {isSubmitting ? 'Creating account…' : 'Create account'}
         </Button>
       </form>
+
+      <GoogleSignIn />
 
       <p className="mt-6 text-center text-[13px] text-ink-muted">
         Already registered?{' '}

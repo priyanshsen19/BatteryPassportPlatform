@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { AuthFormError } from '@/components/auth/auth-form-error';
+import { GOOGLE_ERRORS, GoogleSignIn } from '@/components/auth/google-sign-in';
 import { Button } from '@/components/ui/button';
 import { Field, Input, fieldAria } from '@/components/ui/form-controls';
 import { Card } from '@/components/ui/surface';
@@ -22,7 +23,9 @@ function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const queryClient = useQueryClient();
-  const [formError, setFormError] = useState<string>();
+  const [formError, setFormError] = useState<string | undefined>(
+    () => GOOGLE_ERRORS[params.get('error') ?? ''],
+  );
 
   const {
     register,
@@ -80,6 +83,8 @@ function LoginForm() {
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
+
+      <GoogleSignIn next={params.get('next') ?? undefined} />
 
       <p className="mt-6 text-center text-[13px] text-ink-muted">
         No account yet?{' '}

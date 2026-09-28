@@ -113,6 +113,41 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/auth/google': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Sign in with Google',
+        description:
+          'Exchanges a Google ID token (from the OAuth authorization-code flow) for a platform JWT. ' +
+          'A new account is created with the `user` role; an existing account with the same verified email ' +
+          'is linked and keeps its role. Returns `503 GOOGLE_AUTH_DISABLED` when `GOOGLE_CLIENT_ID` is not set.',
+        security: [],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['idToken'],
+                properties: { idToken: { type: 'string', description: 'Google ID token (JWT)' } },
+              },
+            },
+          },
+        },
+        responses: {
+          200: successResponse('Authenticated; same response as /api/auth/login', {
+            type: 'object',
+            properties: {
+              token: { type: 'string' },
+              tokenType: { type: 'string', example: 'Bearer' },
+              expiresIn: { type: 'string', example: '1h' },
+              user: { $ref: '#/components/schemas/User' },
+            },
+          }),
+          ...errorResponses(401, 409, 422, 503),
+        },
+      },
+    },
     '/api/auth/me': {
       get: {
         tags: ['Auth'],
