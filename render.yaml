@@ -1,0 +1,145 @@
+# Render Blueprint: deploys the four services and the web app as Docker web services.
+# MongoDB (Atlas), S3 (AWS) and Kafka (a hosted provider) are external; their settings are
+# marked `sync: false`, so Render asks for them when the Blueprint is first applied.
+#
+# Services reach each other over their public https://<name>.onrender.com URLs, which works on
+# every plan. Set the *_SERVICE_URL values once Render shows each service's URL.
+
+services:
+  - type: web
+    name: bpp-auth-service
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./apps/auth-service/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false # mongodb+srv://.../auth_db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1h
+      - key: CORS_ORIGINS
+        sync: false # public URL of bpp-web
+      - key: GOOGLE_CLIENT_ID
+        sync: false # optional
+
+  - type: web
+    name: bpp-passport-service
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./apps/passport-service/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false # mongodb+srv://.../passport_db
+      - key: AUTH_SERVICE_URL
+        sync: false # https://bpp-auth-service.onrender.com
+      - key: CORS_ORIGINS
+        sync: false
+      - key: KAFKA_BROKERS
+        sync: false # host:port of the hosted Kafka cluster
+      - key: KAFKA_SSL
+        value: 'true'
+      - key: KAFKA_SASL_MECHANISM
+        value: scram-sha-256 # plain | scram-sha-256 | scram-sha-512, per your Kafka provider
+      - key: KAFKA_SASL_USERNAME
+        sync: false
+      - key: KAFKA_SASL_PASSWORD
+        sync: false
+
+  - type: web
+    name: bpp-document-service
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./apps/document-service/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false # mongodb+srv://.../document_db
+      - key: AUTH_SERVICE_URL
+        sync: false # https://bpp-auth-service.onrender.com
+      - key: PASSPORT_SERVICE_URL
+        sync: false # https://bpp-passport-service.onrender.com
+      - key: CORS_ORIGINS
+        sync: false
+      - key: AWS_REGION
+        value: eu-central-1
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: DOWNLOAD_URL_TTL_SECONDS
+        value: '300'
+
+  # Kafka consumer. Free instances sleep when they receive no HTTP traffic, which pauses
+  # consumption; use a paid instance type (e.g. starter) for continuous notifications.
+  - type: web
+    name: bpp-notification-service
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./apps/notification-service/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: KAFKA_BROKERS
+        sync: false
+      - key: KAFKA_SSL
+        value: 'true'
+      - key: KAFKA_SASL_MECHANISM
+        value: scram-sha-256 # plain | scram-sha-256 | scram-sha-512, per your Kafka provider
+      - key: KAFKA_SASL_USERNAME
+        sync: false
+      - key: KAFKA_SASL_PASSWORD
+        sync: false
+      - key: KAFKA_GROUP_ID
+        value: notification-service
+      - key: SMTP_HOST
+        sync: false # optional
+      - key: SMTP_USER
+        sync: false # optional
+      - key: SMTP_PASSWORD
+        sync: false # optional
+      - key: NOTIFICATION_EMAIL_TO
+        sync: false # optional
+
+  - type: web
+    name: bpp-web
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./apps/web/Dockerfile
+    dockerContext: .
+    healthCheckPath: /login
+    envVars:
+      - key: AUTH_SERVICE_URL
+        sync: false # https://bpp-auth-service.onrender.com
+      - key: PASSPORT_SERVICE_URL
+        sync: false # https://bpp-passport-service.onrender.com
+      - key: DOCUMENT_SERVICE_URL
+        sync: false # https://bpp-document-service.onrender.com
+      - key: PUBLIC_APP_URL
+        sync: false # https://bpp-web.onrender.com
+      - key: SESSION_COOKIE_SECURE
+        value: 'true'
+      - key: GOOGLE_CLIENT_ID
+        sync: false # optional
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false # optional

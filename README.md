@@ -497,6 +497,41 @@ Points to consider:
   web services to sleep, use an always-on instance or a background worker.
 - Local Docker Compose does not depend on any of this deployment configuration.
 
+### Deploying to Render
+
+[`render.yaml`](render.yaml) is a Render Blueprint that creates all five services (`bpp-auth-service`,
+`bpp-passport-service`, `bpp-document-service`, `bpp-notification-service`, `bpp-web`) as Docker
+web services built from this repository, with health checks and a generated `JWT_SECRET`.
+
+1. **Prepare the external services:**
+   - a MongoDB Atlas cluster, with a URI for each of `auth_db`, `passport_db` and `document_db`
+     (allow access from Render);
+   - an AWS S3 bucket and IAM credentials ([AWS S3 configuration](#aws-s3-configuration));
+   - a hosted Kafka cluster: the bootstrap server, SASL username/password and mechanism.
+2. **Create the Blueprint:** in Render choose **New → Blueprint**, select this repository and
+   apply. Render prompts for every value marked `sync: false`.
+3. **Connect the services:** once Render shows each service's URL (normally
+   `https://<service-name>.onrender.com`), set:
+
+   | Service                  | Variable               | Value                         |
+   | ------------------------ | ---------------------- | ----------------------------- |
+   | passport, document, web  | `AUTH_SERVICE_URL`     | URL of `bpp-auth-service`     |
+   | document, web            | `PASSPORT_SERVICE_URL` | URL of `bpp-passport-service` |
+   | web                      | `DOCUMENT_SERVICE_URL` | URL of `bpp-document-service` |
+   | web                      | `PUBLIC_APP_URL`       | URL of `bpp-web`              |
+   | auth, passport, document | `CORS_ORIGINS`         | URL of `bpp-web`              |
+
+4. **Redeploy** the affected services, then create accounts through the web app or `POST /api/auth/register`.
+
+Notes:
+
+- The Blueprint uses the free instance type. Free instances sleep after inactivity (the first
+  request then takes a while) and the notification service stops consuming while asleep; choose a
+  paid instance type for it if notifications must be continuous.
+- Services talk to each other over their public HTTPS URLs, which works on every plan.
+- For Google sign-in, add `https://<bpp-web URL>/api/auth/google/callback` as an authorized
+  redirect URI and set `GOOGLE_CLIENT_ID` (auth, web) and `GOOGLE_CLIENT_SECRET` (web).
+
 ## Design notes
 
 - **Passport schema.** The request body follows the assignment document exactly, including
