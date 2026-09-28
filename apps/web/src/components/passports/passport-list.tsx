@@ -1,0 +1,163 @@
+'use client';
+
+import type { PassportDto } from '@bpp/shared/schemas';
+import { ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/surface';
+import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/table';
+import { formatDate } from '@/lib/utils';
+import { CategoryBadge, StatusBadge } from './passport-badges';
+import { DeletePassportDialog } from './delete-passport-dialog';
+
+interface PassportListProps {
+  passports: PassportDto[];
+  isAdmin: boolean;
+  compact?: boolean;
+}
+
+/** Table on medium+ screens, stacked rows on small screens. */
+export function PassportList({ passports, isAdmin, compact }: PassportListProps) {
+  const router = useRouter();
+  const [toDelete, setToDelete] = useState<PassportDto | null>(null);
+  const showActions = !compact;
+
+  return (
+    <>
+      <div className="hidden md:block">
+        <Table>
+          <THead>
+            <TR>
+              <TH>Battery identifier</TH>
+              <TH>Battery model</TH>
+              <TH>Category</TH>
+              <TH>Status</TH>
+              <TH>Manufacturer</TH>
+              <TH>Manufactured</TH>
+              {showActions && (
+                <TH className="text-right">
+                  <span className="sr-only">Actions</span>
+                </TH>
+              )}
+            </TR>
+          </THead>
+          <TBody>
+            {passports.map((passport) => {
+              const info = passport.data.generalInformation;
+              return (
+                <TR
+                  key={passport.id}
+                  className="cursor-pointer hover:bg-subtle/60"
+                  onClick={() => router.push(`/passports/${passport.id}`)}
+                >
+                  <TD>
+                    <Link
+                      href={`/passports/${passport.id}`}
+                      className="font-mono text-[13px] font-medium text-ink hover:text-accent"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {info.batteryIdentifier}
+                    </Link>
+                  </TD>
+                  <TD className="text-ink-muted">{info.batteryModel.modelName}</TD>
+                  <TD>
+                    <CategoryBadge category={info.batteryCategory} />
+                  </TD>
+                  <TD>
+                    <StatusBadge status={info.batteryStatus} />
+                  </TD>
+                  <TD className="text-ink-muted">{info.manufacturerInformation.manufacturerName}</TD>
+                  <TD className="whitespace-nowrap text-ink-muted tabular-nums">
+                    {formatDate(info.manufacturingDate)}
+                  </TD>
+                  {showActions && (
+                    <TD className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-end gap-1">
+                        {isAdmin && (
+                          <>
+                            <Button variant="ghost" size="icon-sm" asChild>
+                              <Link
+                                href={`/passports/${passport.id}/edit`}
+                                aria-label={`Edit ${info.batteryIdentifier}`}
+                              >
+                                <Pencil />
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="danger-ghost"
+                              size="icon-sm"
+                              aria-label={`Delete ${info.batteryIdentifier}`}
+                              onClick={() => setToDelete(passport)}
+                            >
+                              <Trash2 />
+                            </Button>
+                          </>
+                        )}
+                        <Button variant="ghost" size="icon-sm" asChild>
+                          <Link
+                            href={`/passports/${passport.id}`}
+                            aria-label={`View ${info.batteryIdentifier}`}
+                          >
+                            <ChevronRight />
+                          </Link>
+                        </Button>
+                      </div>
+                    </TD>
+                  )}
+                </TR>
+              );
+            })}
+          </TBody>
+        </Table>
+      </div>
+
+      <ul className="divide-y divide-line md:hidden">
+        {passports.map((passport) => {
+          const info = passport.data.generalInformation;
+          return (
+            <li key={passport.id}>
+              <Link
+                href={`/passports/${passport.id}`}
+                className="flex items-center gap-3 px-4 py-3.5 hover:bg-subtle/60"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[13px] font-medium text-ink">
+                      {info.batteryIdentifier}
+                    </span>
+                    <StatusBadge status={info.batteryStatus} />
+                  </div>
+                  <p className="mt-1 truncate text-xs text-ink-muted">
+                    {info.batteryModel.modelName} · {info.batteryCategory} ·{' '}
+                    {info.manufacturerInformation.manufacturerName}
+                  </p>
+                </div>
+                <ChevronRight className="size-4 shrink-0 text-ink-subtle" aria-hidden />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      <DeletePassportDialog passport={toDelete} onOpenChange={(open) => !open && setToDelete(null)} />
+    </>
+  );
+}
+
+export function PassportListSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="divide-y divide-line" aria-busy="true" aria-label="Loading passports">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="flex items-center gap-4 px-4 py-3.5">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="hidden h-4 w-24 md:block" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="hidden h-4 w-28 md:block" />
+          <Skeleton className="ml-auto h-4 w-20" />
+        </div>
+      ))}
+    </div>
+  );
+}
