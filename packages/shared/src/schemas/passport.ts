@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { paginationQuerySchema } from './common';
 
 // Categories and lifecycle statuses defined by the EU Battery Regulation (EU) 2023/1542.
 export const BATTERY_CATEGORIES = ['EV', 'LMT', 'Industrial', 'SLI', 'Portable'] as const;
@@ -6,6 +7,33 @@ export const BATTERY_STATUSES = ['Original', 'Repurposed', 'Reused', 'Remanufact
 
 export type BatteryCategory = (typeof BATTERY_CATEGORIES)[number];
 export type BatteryStatus = (typeof BATTERY_STATUSES)[number];
+
+export const PASSPORT_SORT_FIELDS = [
+  'createdAt',
+  'batteryIdentifier',
+  'modelName',
+  'batteryCategory',
+  'batteryStatus',
+  'manufacturerName',
+  'manufacturingDate',
+] as const;
+export type PassportSortField = (typeof PASSPORT_SORT_FIELDS)[number];
+
+/** Query parameters of GET /api/passports. */
+export const passportListQuerySchema = paginationQuerySchema.extend({
+  q: z
+    .string()
+    .trim()
+    .max(100)
+    .optional()
+    .transform((value) => value || undefined),
+  category: z.enum(BATTERY_CATEGORIES).optional(),
+  status: z.enum(BATTERY_STATUSES).optional(),
+  sort: z.enum(PASSPORT_SORT_FIELDS).default('createdAt'),
+  order: z.enum(['asc', 'desc']).default('desc'),
+});
+
+export type PassportListQuery = z.infer<typeof passportListQuerySchema>;
 
 const text = (max = 200) => z.string().trim().min(1, 'This field is required').max(max);
 const number = (message: string) => z.number({ error: message });

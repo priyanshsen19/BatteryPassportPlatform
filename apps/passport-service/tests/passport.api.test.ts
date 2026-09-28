@@ -1,4 +1,4 @@
-import { passportEventSchema } from '@bpp/shared';
+import { passportEventSchema, type BatteryCategory, type BatteryStatus } from '@bpp/shared';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import request from 'supertest';
@@ -161,6 +161,80 @@ describe('GET /api/passports', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toMatchObject({ page: 1, limit: 1, total: 2 });
     expect(res.body.data.items).toHaveLength(1);
+  });
+
+  describe('search, filter and sort', () => {
+    const variant = (
+      id: string,
+      overrides: { category: BatteryCategory; status: BatteryStatus; manufacturer: string },
+    ) => {
+      const body = samplePassport(id);
+      const info = body.data.generalInformation;
+      info.batteryCategory = overrides.category;
+      info.batteryStatus = overrides.status;
+      info.manufacturerInformation.manufacturerName = overrides.manufacturer;
+      return body;
+    };
+    const identifiers = (res: request.Response) =>
+      res.body.data.items.map(
+        (p: { data: { generalInformation: { batteryIdentifier: string } } }) =>
+          p.data.generalInformation.batteryIdentifier,
+      );
+
+    beforeEach(async () => {
+      await createPassport(
+        variant('BP-A-100', { category: 'EV', status: 'Original', manufacturer: 'Tesla Inc' }),
+      );
+      await createPassport(variant('BP-C-300', { category: 'LMT', status: 'Reused', manufacturer: 'CATL' }));
+      await createPassport(
+        variant('BP-B-200', { category: 'EV', status: 'Waste', manufacturer: 'Northvolt' }),
+      );
+    });
+
+    it('searches case-insensitively across identifier and manufacturer', async () => {
+      const byManufacturer = await request(app)
+        .get('/api/passports?q=northVOLT')
+        .set('Authorization', USER_AUTH);
+      expect(identifiers(byManufacturer)).toEqual(['BP-B-200']);
+
+      const byIdentifier = await request(app).get('/api/passports?q=c-300').set('Authorization', USER_AUTH);
+      expect(identifiers(byIdentifier)).toEqual(['BP-C-300']);
+    });
+
+    it('treats search input literally rather than as a regular expression', async () => {
+      const res = await request(app)
+        .get(`/api/passports?q=${encodeURIComponent('.*')}`)
+        .set('Authorization', USER_AUTH);
+      expect(res.status).toBe(200);
+      expect(res.body.data.total).toBe(0);
+    });
+
+    it('filters by category and status', async () => {
+      const res = await request(app)
+        .get('/api/passports?category=EV&status=Waste')
+        .set('Authorization', USER_AUTH);
+      expect(identifiers(res)).toEqual(['BP-B-200']);
+      expect(res.body.data.total).toBe(1);
+    });
+
+    it('sorts by a field in either direction', async () => {
+      const asc = await request(app)
+        .get('/api/passports?sort=batteryIdentifier&order=asc')
+        .set('Authorization', USER_AUTH);
+      expect(identifiers(asc)).toEqual(['BP-A-100', 'BP-B-200', 'BP-C-300']);
+
+      const desc = await request(app)
+        .get('/api/passports?sort=manufacturerName&order=desc')
+        .set('Authorization', USER_AUTH);
+      expect(identifiers(desc)).toEqual(['BP-A-100', 'BP-B-200', 'BP-C-300']);
+    });
+
+    it('rejects unknown sort fields and filter values with 422', async () => {
+      const res = await request(app)
+        .get('/api/passports?sort=password&status=Broken')
+        .set('Authorization', USER_AUTH);
+      expect(res.status).toBe(422);
+    });
   });
 });
 

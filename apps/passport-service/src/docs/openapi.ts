@@ -1,6 +1,7 @@
 import {
   BATTERY_CATEGORIES,
   BATTERY_STATUSES,
+  PASSPORT_SORT_FIELDS,
   bearerAuthScheme,
   errorEnvelopeSchema,
   errorResponses,
@@ -155,10 +156,21 @@ export const openApiSpec = {
       get: {
         tags: ['Passports'],
         summary: 'List passports',
-        description: 'Roles: **admin**, **user**. Newest first.',
+        description:
+          'Roles: **admin**, **user**. Supports free-text search (battery identifier, model, manufacturer), ' +
+          'filtering by category and status, and sorting.',
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
+          { name: 'q', in: 'query', schema: { type: 'string', maxLength: 100 }, example: 'BP-2024' },
+          { name: 'category', in: 'query', schema: { type: 'string', enum: BATTERY_CATEGORIES } },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: BATTERY_STATUSES } },
+          {
+            name: 'sort',
+            in: 'query',
+            schema: { type: 'string', enum: PASSPORT_SORT_FIELDS, default: 'createdAt' },
+          },
+          { name: 'order', in: 'query', schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' } },
         ],
         responses: {
           200: successResponse(

@@ -5,6 +5,7 @@ import {
   type PassportData,
   type PassportDto,
   type PassportEventType,
+  type PassportListQuery,
 } from '@bpp/shared';
 import { logger } from '../config';
 import type { PassportEventPublisher } from '../events/passportEventPublisher';
@@ -67,9 +68,9 @@ export function createPassportService(publisher: PassportEventPublisher) {
       return toPassportDto(passport);
     },
 
-    async list(page: number, limit: number): Promise<Paginated<PassportDto>> {
-      const { items, total } = await passportRepository.list(page, limit);
-      return { items: items.map(toPassportDto), page, limit, total };
+    async list(query: PassportListQuery): Promise<Paginated<PassportDto>> {
+      const { items, total } = await passportRepository.list(query);
+      return { items: items.map(toPassportDto), page: query.page, limit: query.limit, total };
     },
 
     async update(id: string, data: PassportData, ctx: RequestContext): Promise<PassportDto> {

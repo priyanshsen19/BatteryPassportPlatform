@@ -1,4 +1,4 @@
-import { Errors, paginationQuerySchema, parseQuery, sendSuccess } from '@bpp/shared';
+import { Errors, parseQuery, passportListQuerySchema, sendSuccess } from '@bpp/shared';
 import type { Request, Response } from 'express';
 import type { PassportService, RequestContext } from '../services/passport.service';
 
@@ -18,8 +18,7 @@ export function createPassportController(service: PassportService) {
     },
 
     async list(req: Request, res: Response): Promise<void> {
-      const { page, limit } = parseQuery(paginationQuerySchema, req.query);
-      sendSuccess(res, await service.list(page, limit));
+      sendSuccess(res, await service.list(parseQuery(passportListQuerySchema, req.query)));
     },
 
     async getById(req: Request, res: Response): Promise<void> {
