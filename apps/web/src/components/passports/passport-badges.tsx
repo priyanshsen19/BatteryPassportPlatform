@@ -9,9 +9,9 @@ const STATUS_TONES: Record<BatteryStatus, BadgeProps['tone']> = {
   Waste: 'danger',
 };
 
-export function StatusBadge({ status }: { status: BatteryStatus }) {
+export function StatusBadge({ status, className }: { status: BatteryStatus; className?: string }) {
   return (
-    <Badge tone={STATUS_TONES[status]} dot>
+    <Badge tone={STATUS_TONES[status]} dot className={className}>
       {status}
     </Badge>
   );

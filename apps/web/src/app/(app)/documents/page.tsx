@@ -14,7 +14,7 @@ const PAGE_SIZE = 20;
 
 function UploadSection() {
   const [passportId, setPassportId] = useState('');
-  const passports = usePassports(1, 100);
+  const passports = usePassports({ limit: 100, sort: 'batteryIdentifier', order: 'asc' });
 
   return (
     <Section

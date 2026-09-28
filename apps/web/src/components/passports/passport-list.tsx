@@ -1,25 +1,71 @@
 'use client';
 
-import type { PassportDto } from '@bpp/shared/schemas';
-import { ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import type { PassportDto, PassportSortField } from '@bpp/shared/schemas';
+import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/surface';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/table';
-import { formatDate } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 import { CategoryBadge, StatusBadge } from './passport-badges';
 import { DeletePassportDialog } from './delete-passport-dialog';
+
+export interface SortState {
+  sort: PassportSortField;
+  order: 'asc' | 'desc';
+  onSort: (field: PassportSortField) => void;
+}
 
 interface PassportListProps {
   passports: PassportDto[];
   isAdmin: boolean;
   compact?: boolean;
+  sorting?: SortState;
+}
+
+const COLUMNS: { field: PassportSortField; label: string }[] = [
+  { field: 'batteryIdentifier', label: 'Battery identifier' },
+  { field: 'modelName', label: 'Battery model' },
+  { field: 'batteryCategory', label: 'Category' },
+  { field: 'batteryStatus', label: 'Status' },
+  { field: 'manufacturerName', label: 'Manufacturer' },
+  { field: 'manufacturingDate', label: 'Manufactured' },
+];
+
+function ColumnHeader({
+  field,
+  label,
+  sorting,
+}: {
+  field: PassportSortField;
+  label: string;
+  sorting?: SortState;
+}) {
+  if (!sorting) return <TH>{label}</TH>;
+
+  const active = sorting.sort === field;
+  const Icon = !active ? ChevronsUpDown : sorting.order === 'asc' ? ArrowUp : ArrowDown;
+  return (
+    <TH aria-sort={active ? (sorting.order === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <button
+        type="button"
+        onClick={() => sorting.onSort(field)}
+        className={cn(
+          '-mx-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors hover:bg-line/60 hover:text-ink',
+          active && 'text-ink',
+        )}
+      >
+        {label}
+        <Icon className={cn('size-3.5', !active && 'opacity-40')} aria-hidden />
+      </button>
+    </TH>
+  );
 }
 
 /** Table on medium+ screens, stacked rows on small screens. */
-export function PassportList({ passports, isAdmin, compact }: PassportListProps) {
+export function PassportList({ passports, isAdmin, compact, sorting }: PassportListProps) {
   const router = useRouter();
   const [toDelete, setToDelete] = useState<PassportDto | null>(null);
   const showActions = !compact;
@@ -30,12 +76,9 @@ export function PassportList({ passports, isAdmin, compact }: PassportListProps)
         <Table>
           <THead>
             <TR>
-              <TH>Battery identifier</TH>
-              <TH>Battery model</TH>
-              <TH>Category</TH>
-              <TH>Status</TH>
-              <TH>Manufacturer</TH>
-              <TH>Manufactured</TH>
+              {COLUMNS.map((column) => (
+                <ColumnHeader key={column.field} {...column} sorting={sorting} />
+              ))}
               {showActions && (
                 <TH className="text-right">
                   <span className="sr-only">Actions</span>

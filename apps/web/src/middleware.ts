@@ -21,5 +21,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|icon.svg|favicon.ico).*)'],
+  // Skip API routes, Next.js assets and static files (anything with a file extension, e.g. logos).
+  matcher: ['/((?!api|_next/static|_next/image|.*\\.[a-zA-Z0-9]+$).*)'],
 };

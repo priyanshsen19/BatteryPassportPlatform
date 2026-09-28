@@ -4,20 +4,36 @@ import type {
   AuthUser,
   DocumentDownload,
   DocumentDto,
+  DownloadDisposition,
   Paginated,
   PassportDto,
+  PassportListQuery,
   PassportRequest,
   UpdateDocumentInput,
 } from '@bpp/shared/schemas';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, parseResponse } from './api-client';
+import { useIsClient } from './hooks';
+
+/** Passport list parameters as accepted by GET /api/passports (all optional). */
+export type PassportListParams = Partial<Omit<PassportListQuery, 'q'>> & { q?: string };
 
 export const queryKeys = {
   session: ['session'] as const,
-  passports: (page: number, limit: number) => ['passports', { page, limit }] as const,
+  passports: (params: PassportListParams) => ['passports', params] as const,
   passport: (id: string) => ['passport', id] as const,
   documents: (filter: { passportId?: string; page: number; limit: number }) => ['documents', filter] as const,
+  documentLink: (docId: string, disposition: DownloadDisposition) =>
+    ['document-link', docId, disposition] as const,
 };
+
+function toSearchParams(params: object): URLSearchParams {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') search.set(key, String(value));
+  });
+  return search;
+}
 
 export function useSession() {
   return useQuery({
@@ -28,15 +44,22 @@ export function useSession() {
   });
 }
 
+/**
+ * Admin-only UI is revealed after hydration: Suspense boundaries hydrate after the session
+ * query may already have resolved, and the server HTML never contains role-specific controls.
+ */
 export function useIsAdmin(): boolean {
-  return useSession().data?.role === 'admin';
+  const isClient = useIsClient();
+  const role = useSession().data?.role;
+  return isClient && role === 'admin';
 }
 
-export function usePassports(page: number, limit = 20) {
+export function usePassports(params: PassportListParams = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
-    queryKey: queryKeys.passports(page, limit),
-    queryFn: () => api.get<Paginated<PassportDto>>(`/passports?page=${page}&limit=${limit}`),
+    queryKey: queryKeys.passports(params),
+    queryFn: () => api.get<Paginated<PassportDto>>(`/passports?${toSearchParams(params)}`),
     placeholderData: keepPreviousData,
+    enabled: options.enabled ?? true,
   });
 }
 
@@ -50,13 +73,26 @@ export function usePassport(id: string) {
 export function useDocuments(filter: { passportId?: string; page?: number; limit?: number } = {}) {
   const page = filter.page ?? 1;
   const limit = filter.limit ?? 20;
-  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-  if (filter.passportId) params.set('passportId', filter.passportId);
+  const params = toSearchParams({ page, limit, passportId: filter.passportId });
 
   return useQuery({
     queryKey: queryKeys.documents({ passportId: filter.passportId, page, limit }),
     queryFn: () => api.get<Paginated<DocumentDto>>(`/documents?${params}`),
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * A pre-signed link for previewing or downloading a document. Links expire after a few
+ * minutes, so they are cached only briefly and never reused across disposition types.
+ */
+export function useDocumentLink(docId: string | null, disposition: DownloadDisposition) {
+  return useQuery({
+    queryKey: queryKeys.documentLink(docId ?? '', disposition),
+    queryFn: () => api.get<DocumentDownload>(`/documents/${docId}?disposition=${disposition}`),
+    enabled: docId !== null,
+    staleTime: 60 * 1000,
+    gcTime: 60 * 1000,
   });
 }
 

@@ -10,6 +10,7 @@ import { DocumentUpload } from '@/components/documents/document-upload';
 import { PageTransition } from '@/components/layout/page-transition';
 import { DeletePassportDialog } from '@/components/passports/delete-passport-dialog';
 import { CategoryBadge, StatusBadge } from '@/components/passports/passport-badges';
+import { PassportHeroCard } from '@/components/passports/passport-card';
 import { Button } from '@/components/ui/button';
 import { Card, EmptyState, ErrorState, PageHeader, Section, Skeleton } from '@/components/ui/surface';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/table';
@@ -75,6 +76,8 @@ function PassportDetail({ passport, isAdmin }: { passport: PassportDto; isAdmin:
 
   return (
     <div className="flex flex-col gap-5">
+      <PassportHeroCard passport={passport} />
+
       <Section id="general" title="General information">
         <DetailGrid>
           <Detail label="Battery identifier" mono>
@@ -174,10 +177,7 @@ function PassportDetail({ passport, isAdmin }: { passport: PassportDto; isAdmin:
 
       <PassportDocuments passportId={passport.id} isAdmin={isAdmin} />
 
-      <p className="text-xs text-ink-subtle">
-        Record <span className="font-mono">{passport.id}</span> · created {formatDateTime(passport.createdAt)}{' '}
-        · last updated {formatDateTime(passport.updatedAt)}
-      </p>
+      <p className="text-xs text-ink-subtle">Created {formatDateTime(passport.createdAt)}</p>
     </div>
   );
 }
@@ -245,7 +245,7 @@ export default function PassportPage() {
     <PageTransition>
       <PageHeader
         eyebrow={back}
-        title={passport ? passport.data.generalInformation.batteryIdentifier : 'Battery passport'}
+        title="Passport details"
         description={
           passport
             ? `${passport.data.generalInformation.batteryModel.modelName} · ${passport.data.generalInformation.manufacturerInformation.manufacturerName}`

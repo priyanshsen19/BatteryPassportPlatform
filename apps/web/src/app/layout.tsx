@@ -6,17 +6,21 @@ import { Providers } from '@/components/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Battery Passport Platform', template: '%s · Battery Passport Platform' },
+  title: { default: 'MEAtec Battery Passport', template: '%s · MEAtec Battery Passport' },
   description: 'Manage digital battery passports and their supporting documents.',
 };
 
 export const viewport: Viewport = {
-  themeColor: '#f8f8f6',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f4f6f6' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f1213' },
+  ],
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    // next-themes sets the theme class before hydration, so the server markup differs by design.
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <body className="min-h-dvh">
         <Providers>{children}</Providers>
       </body>

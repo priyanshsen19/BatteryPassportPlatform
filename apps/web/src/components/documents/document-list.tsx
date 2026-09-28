@@ -1,7 +1,7 @@
 'use client';
 
 import type { DocumentDto } from '@bpp/shared/schemas';
-import { Download, FileText, Pencil, Trash2 } from 'lucide-react';
+import { Download, Eye, FileImage, FileText, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -13,7 +13,13 @@ import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/table';
 import { ApiError } from '@/lib/api-client';
 import { downloadDocument, useDeleteDocument } from '@/lib/queries';
 import { formatBytes, formatDate, mimeLabel } from '@/lib/utils';
+import { DocumentPreviewDialog, canPreview } from './document-preview-dialog';
 import { RenameDocumentDialog } from './rename-document-dialog';
+
+function FileIcon({ doc }: { doc: DocumentDto }) {
+  const Icon = doc.mimeType.startsWith('image/') ? FileImage : FileText;
+  return <Icon className="size-4 shrink-0 text-ink-subtle" aria-hidden />;
+}
 
 interface DocumentListProps {
   documents: DocumentDto[];
@@ -25,6 +31,7 @@ export function DocumentList({ documents, isAdmin, showPassport }: DocumentListP
   const [downloading, setDownloading] = useState<string | null>(null);
   const [toRename, setToRename] = useState<DocumentDto | null>(null);
   const [toDelete, setToDelete] = useState<DocumentDto | null>(null);
+  const [toPreview, setToPreview] = useState<DocumentDto | null>(null);
   const deleteDocument = useDeleteDocument();
 
   const download = async (doc: DocumentDto) => {
@@ -51,6 +58,17 @@ export function DocumentList({ documents, isAdmin, showPassport }: DocumentListP
 
   const actions = (doc: DocumentDto) => (
     <div className="flex justify-end gap-1">
+      {canPreview(doc) && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setToPreview(doc)}
+          aria-label={`Preview ${doc.fileName}`}
+          title="Preview"
+        >
+          <Eye />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon-sm"
@@ -86,6 +104,23 @@ export function DocumentList({ documents, isAdmin, showPassport }: DocumentListP
     </div>
   );
 
+  /** Previewable files open in the viewer when their name is clicked. */
+  const fileName = (doc: DocumentDto, className: string) =>
+    canPreview(doc) ? (
+      <button
+        type="button"
+        onClick={() => setToPreview(doc)}
+        className={`truncate text-left hover:text-accent hover:underline hover:underline-offset-4 ${className}`}
+        title={`Preview ${doc.fileName}`}
+      >
+        {doc.fileName}
+      </button>
+    ) : (
+      <span className={`truncate ${className}`} title={doc.fileName}>
+        {doc.fileName}
+      </span>
+    );
+
   const passportLink = (doc: DocumentDto) =>
     doc.passportId ? (
       <Link
@@ -119,10 +154,8 @@ export function DocumentList({ documents, isAdmin, showPassport }: DocumentListP
               <TR key={doc.docId} className="hover:bg-subtle/60">
                 <TD className="max-w-xs">
                   <span className="flex items-center gap-2">
-                    <FileText className="size-4 shrink-0 text-ink-subtle" aria-hidden />
-                    <span className="truncate font-medium" title={doc.fileName}>
-                      {doc.fileName}
-                    </span>
+                    <FileIcon doc={doc} />
+                    {fileName(doc, 'font-medium')}
                   </span>
                 </TD>
                 <TD>
@@ -141,9 +174,9 @@ export function DocumentList({ documents, isAdmin, showPassport }: DocumentListP
       <ul className="divide-y divide-line md:hidden">
         {documents.map((doc) => (
           <li key={doc.docId} className="flex items-center gap-3 px-4 py-3">
-            <FileText className="size-4 shrink-0 text-ink-subtle" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-ink">{doc.fileName}</p>
+            <FileIcon doc={doc} />
+            <div className="flex min-w-0 flex-1 flex-col">
+              {fileName(doc, 'text-[13px] font-medium text-ink')}
               <p className="mt-0.5 text-xs text-ink-subtle">
                 {mimeLabel(doc.mimeType)} · {formatBytes(doc.size)} · {formatDate(doc.createdAt)}
               </p>
@@ -153,6 +186,7 @@ export function DocumentList({ documents, isAdmin, showPassport }: DocumentListP
         ))}
       </ul>
 
+      <DocumentPreviewDialog document={toPreview} onOpenChange={(open) => !open && setToPreview(null)} />
       <RenameDocumentDialog document={toRename} onOpenChange={(open) => !open && setToRename(null)} />
       <ConfirmDialog
         open={toDelete !== null}

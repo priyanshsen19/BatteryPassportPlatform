@@ -1,30 +1,120 @@
 @import 'tailwindcss';
 
-@theme {
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * MEAtec palette. `brand` is the logo teal (#5AB4B7) and is used for decorative surfaces;
+ * `accent` is a deeper teal with enough contrast for text and filled buttons.
+ */
+:root {
+  --canvas: #f4f6f6;
+  --surface: #ffffff;
+  --subtle: #eff2f2;
+  --ink: #1b1f21;
+  --ink-muted: #505a5d;
+  --ink-subtle: #778084;
+  --line: #e1e5e5;
+  --line-strong: #ccd2d3;
+
+  --brand: #5ab4b7;
+  --brand-ink: #062a2b;
+  --accent: #17777b;
+  --accent-hover: #115d60;
+  --accent-soft: #e4f3f3;
+  --accent-ink: #0d4d50;
+  --on-accent: #ffffff;
+
+  --sidebar: #26292c;
+  --sidebar-raised: #303437;
+  --sidebar-line: #363a3d;
+  --sidebar-ink: #eef0f0;
+  --sidebar-muted: #9ba3a6;
+
+  --danger: #b42318;
+  --danger-hover: #912018;
+  --danger-soft: #fdf1f0;
+  --on-danger: #ffffff;
+  --warning: #93560a;
+  --warning-soft: #fdf5e6;
+  --info: #2f5d8a;
+  --info-soft: #ecf2f9;
+
+  --shadow-color: 210 10% 20%;
+}
+
+.dark {
+  color-scheme: dark;
+  --canvas: #0f1213;
+  --surface: #171b1d;
+  --subtle: #1e2326;
+  --ink: #e8ebeb;
+  --ink-muted: #a9b1b4;
+  --ink-subtle: #7e878a;
+  --line: #283033;
+  --line-strong: #394245;
+
+  --accent: #5ab4b7;
+  --accent-hover: #74c4c6;
+  --accent-soft: #15302f;
+  --accent-ink: #9edadb;
+  --on-accent: #062a2b;
+
+  --sidebar: #0b0e0f;
+  --sidebar-raised: #1a1f21;
+  --sidebar-line: #202628;
+
+  --danger: #f0857c;
+  --danger-hover: #f4a39c;
+  --danger-soft: #3a1c1a;
+  --on-danger: #2a0907;
+  --warning: #e3b45f;
+  --warning-soft: #33281a;
+  --info: #8db6df;
+  --info-soft: #182536;
+
+  --shadow-color: 0 0% 0%;
+}
+
+@theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 
-  --color-canvas: #f8f8f6;
-  --color-surface: #ffffff;
-  --color-subtle: #f3f3f0;
-  --color-ink: #1b1d1c;
-  --color-ink-muted: #545a57;
-  --color-ink-subtle: #7a807c;
-  --color-line: #e4e5e1;
-  --color-line-strong: #d0d2cd;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
 
-  --color-accent: #0e6b5c;
-  --color-accent-hover: #0a5549;
-  --color-accent-soft: #eaf4f1;
-  --color-accent-ink: #0b4a40;
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-on-accent: var(--on-accent);
 
-  --color-danger: #b42318;
-  --color-danger-hover: #912018;
-  --color-danger-soft: #fdf1f0;
-  --color-warning: #9a5b0b;
-  --color-warning-soft: #fdf6e7;
-  --color-info: #2f5d8a;
-  --color-info-soft: #edf3f9;
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-raised: var(--sidebar-raised);
+  --color-sidebar-line: var(--sidebar-line);
+  --color-sidebar-ink: var(--sidebar-ink);
+  --color-sidebar-muted: var(--sidebar-muted);
+
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-soft: var(--danger-soft);
+  --color-on-danger: var(--on-danger);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --shadow-card: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 1px 1px hsl(var(--shadow-color) / 0.04);
+  --shadow-raised: 0 8px 24px -8px hsl(var(--shadow-color) / 0.18), 0 2px 6px hsl(var(--shadow-color) / 0.06);
+  --shadow-overlay:
+    0 24px 48px -12px hsl(var(--shadow-color) / 0.3), 0 4px 12px hsl(var(--shadow-color) / 0.1);
 }
 
 @layer base {
