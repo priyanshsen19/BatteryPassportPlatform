@@ -1,0 +1,9 @@
+process.env.NODE_ENV = 'test';
+process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/document_test';
+process.env.AUTH_SERVICE_URL = 'http://auth-service.test';
+process.env.PASSPORT_SERVICE_URL = 'http://passport-service.test';
+process.env.AWS_REGION = 'eu-central-1';
+process.env.AWS_S3_BUCKET = 'test-bucket';
+process.env.AWS_ACCESS_KEY_ID = 'test';
+process.env.AWS_SECRET_ACCESS_KEY = 'test';
+process.env.MAX_UPLOAD_SIZE_BYTES = String(1024 * 1024);
