@@ -26,7 +26,11 @@ const winstonLogCreator =
   () =>
   ({ namespace, level, log }) => {
     const { message, timestamp: _timestamp, logger: _source, ...extra } = log;
-    logger.log(WINSTON_LEVELS[level] ?? 'info', `kafkajs ${namespace}: ${message}`, extra);
+    // Per-request broker responses (e.g. "coordinator loading" during start-up) are retried by
+    // kafkajs itself; failures that survive the retries surface as errors to the caller.
+    const winstonLevel =
+      namespace === 'Connection' && level === logLevel.ERROR ? 'warn' : WINSTON_LEVELS[level];
+    logger.log(winstonLevel ?? 'info', `kafkajs ${namespace}: ${message}`, extra);
   };
 
 /** Builds a KafkaJS client; SSL/SASL options allow hosted, Kafka-compatible providers. */
