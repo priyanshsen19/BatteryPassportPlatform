@@ -71,7 +71,7 @@ Every service has its own `package.json`, Dockerfile, configuration, tests and `
   bcrypt, AWS SDK v3 (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`), Multer, Zod,
   Winston, swagger-ui-express, Nodemailer
 - **Frontend:** Next.js 15, React 19, Tailwind CSS 4, TanStack Query, React Hook Form, Zod,
-  Radix UI primitives, Lucide icons, Framer Motion
+  Radix UI primitives, cmdk, next-themes, qrcode.react, Lucide icons, Framer Motion
 - **Infrastructure:** MongoDB 7, Apache Kafka 3.8 (KRaft), LocalStack (S3) for local
   development, Docker Compose, GitHub Actions
 - **Testing:** Jest, Supertest, mongodb-memory-server
@@ -153,6 +153,22 @@ JWT_SECRET=<secret> pnpm --filter auth-service dev
 ```
 
 The web app reads `apps/web/.env.example` values (`cp apps/web/.env.example apps/web/.env.local`).
+
+### Web interface
+
+The MEAtec-branded web app (http://localhost:3000) demonstrates every backend capability:
+
+- **Dashboard:** live counts of passports and documents and the most recent passports.
+- **Passports:** a sortable table (or card grid) with search and category/status filters; the
+  view is kept in the URL so it can be shared.
+- **Passport detail:** each battery shown as a digital passport card with a QR code linking to
+  its page, followed by the full passport data and its documents.
+- **Documents:** upload with progress, in-app preview for PDFs and images, rename, download
+  and delete.
+- **Command bar:** ⌘K / Ctrl+K searches passports and jumps to any page or action.
+- **Light and dark themes**, following the system setting by default.
+
+Admin-only actions are hidden from users, but the services enforce every permission.
 
 ## Environment variables
 
@@ -242,13 +258,19 @@ Validation failures (`422 VALIDATION_ERROR`) include `details: [{ "field", "mess
 
 ### Passport service (`:4002`)
 
-| Method | Path                 | Roles       | Description                                      |
-| ------ | -------------------- | ----------- | ------------------------------------------------ |
-| POST   | `/api/passports`     | admin       | Create; emits `passport.created`                 |
-| GET    | `/api/passports/:id` | admin, user | Retrieve                                         |
-| PUT    | `/api/passports/:id` | admin       | Replace passport data; emits `passport.updated`  |
-| DELETE | `/api/passports/:id` | admin       | Delete; emits `passport.deleted`                 |
-| GET    | `/api/passports`     | admin, user | Paginated list (`page`, `limit`), used by the UI |
+| Method | Path                 | Roles       | Description                                     |
+| ------ | -------------------- | ----------- | ----------------------------------------------- |
+| POST   | `/api/passports`     | admin       | Create; emits `passport.created`                |
+| GET    | `/api/passports/:id` | admin, user | Retrieve                                        |
+| PUT    | `/api/passports/:id` | admin       | Replace passport data; emits `passport.updated` |
+| DELETE | `/api/passports/:id` | admin       | Delete; emits `passport.deleted`                |
+| GET    | `/api/passports`     | admin, user | Paginated list, used by the UI (see below)      |
+
+`GET /api/passports` accepts `page`, `limit`, `q` (case-insensitive search across battery
+identifier, model and manufacturer; matched literally), `category`, `status`, `sort`
+(`createdAt`, `batteryIdentifier`, `modelName`, `batteryCategory`, `batteryStatus`,
+`manufacturerName`, `manufacturingDate`) and `order` (`asc` / `desc`). Unknown values are
+rejected with `422`.
 
 ### Document service (`:4003`)
 
@@ -261,6 +283,9 @@ Validation failures (`422 VALIDATION_ERROR`) include `details: [{ "field", "mess
 | GET    | `/api/documents`        | admin, user | Paginated list, optional `passportId` filter, used by the UI                            |
 
 Uploads accept PDF, PNG, JPEG, WebP, plain text, CSV, JSON, DOCX and XLSX up to 10 MB.
+`GET /api/documents/:docId?disposition=inline` returns a link the browser can display (used for
+in-app preview); it is honoured for PDFs and images only, other types are always served as
+downloads.
 
 ### Example session
 

@@ -108,7 +108,12 @@ The Next.js app keeps the JWT in an `httpOnly`, `SameSite=Lax` cookie that brows
 cannot read. Its route handlers log users in through the auth service and forward API calls to
 the passport and document services, adding the `Authorization` header server-side. The services
 still enforce authentication and roles on every request; the UI only hides actions a role cannot
-perform. File downloads go straight from the browser to S3 through the pre-signed URL.
+perform. File downloads go straight from the browser to S3 through the pre-signed URL; previews
+use the same mechanism with an `inline` content disposition, issued only for PDFs and images.
+
+Passport search, filtering and sorting run in the passport service (MongoDB query with a
+case-insensitive collation), so results stay correct across pages. The list view keeps its state
+in the URL, and the ⌘K command bar reuses the same search endpoint.
 
 ## Cross-cutting concerns
 
