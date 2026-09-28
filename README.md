@@ -8,23 +8,50 @@ notification consumer, and a web interface for demonstrating the system.
 > This is the simplified platform described in the assignment. It is not a certified
 > implementation of the EU Battery Passport.
 
+![Passport detail with the digital passport card and QR code](docs/screenshots/passport-detail.png)
+
 ## Contents
 
-1. [Architecture](#architecture)
-2. [Services](#services)
-3. [Technology stack](#technology-stack)
-4. [Repository structure](#repository-structure)
-5. [Running locally with Docker Compose](#running-locally-with-docker-compose)
-6. [Environment variables](#environment-variables)
-7. [AWS S3 configuration](#aws-s3-configuration)
-8. [API](#api)
-9. [Authentication and RBAC](#authentication-and-rbac)
-10. [Kafka topics and payloads](#kafka-topics-and-payloads)
-11. [Swagger documentation](#swagger-documentation)
-12. [Testing](#testing)
-13. [CI](#ci)
-14. [Deployment](#deployment)
-15. [Design notes](#design-notes)
+1. [Screenshots](#screenshots)
+2. [Architecture](#architecture)
+3. [Services](#services)
+4. [Technology stack](#technology-stack)
+5. [Repository structure](#repository-structure)
+6. [Running locally with Docker Compose](#running-locally-with-docker-compose)
+7. [Environment variables](#environment-variables)
+8. [AWS S3 configuration](#aws-s3-configuration)
+9. [API](#api)
+10. [Authentication and RBAC](#authentication-and-rbac)
+11. [Kafka topics and payloads](#kafka-topics-and-payloads)
+12. [Swagger documentation](#swagger-documentation)
+13. [Testing](#testing)
+14. [CI](#ci)
+15. [Deployment](#deployment)
+16. [Design notes](#design-notes)
+
+## Screenshots
+
+Captured from the running Docker Compose stack with sample data.
+
+| Dashboard                                                                               | Dashboard (dark theme)                                              |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| ![Dashboard with live counts and recent passport cards](docs/screenshots/dashboard.png) | ![Dashboard in the dark theme](docs/screenshots/dashboard-dark.png) |
+
+| Passports: table with search, filters and sorting                                        | Passports: card view                                              |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| ![Sortable passport table with search and filters](docs/screenshots/passports-table.png) | ![Passports shown as cards](docs/screenshots/passports-cards.png) |
+
+| Passport detail (dark theme)                                                               | Command bar (⌘K)                                                         |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| ![Passport card with QR code in the dark theme](docs/screenshots/passport-detail-dark.png) | ![Command bar searching passports](docs/screenshots/command-palette.png) |
+
+| Documents                                                    | In-app document preview                                                                      |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| ![Document list with upload](docs/screenshots/documents.png) | ![Image preview served through a short-lived S3 link](docs/screenshots/document-preview.png) |
+
+| Edit passport form                                              | Sign in                                       | Mobile                                                            |
+| --------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
+| ![Structured passport form](docs/screenshots/passport-form.png) | ![Sign-in screen](docs/screenshots/login.png) | ![Passport card on a phone](docs/screenshots/mobile-passport.png) |
 
 ## Architecture
 
