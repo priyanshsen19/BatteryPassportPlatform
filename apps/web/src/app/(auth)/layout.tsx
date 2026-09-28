@@ -21,7 +21,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           className="pointer-events-none absolute -right-8 -bottom-8 size-48 rounded-full border-[24px] border-brand/15"
           aria-hidden
         />
-        <Logo tone="on-dark" className="h-8" priority />
+        <Logo tone="on-dark" size="lg" />
         <div className="relative mt-auto max-w-md">
           <h2 className="text-3xl leading-tight font-semibold tracking-tight text-sidebar-ink">
             Battery passports, from factory to second life.
@@ -45,7 +45,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </div>
         <div className="w-full max-w-[380px]">
           <div className="mb-8 lg:hidden">
-            <Logo className="h-7" priority />
+            <Logo size="md" />
           </div>
           {children}
         </div>

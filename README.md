@@ -183,7 +183,7 @@ The web app reads `apps/web/.env.example` values (`cp apps/web/.env.example apps
 
 ### Web interface
 
-The MEAtec-branded web app (http://localhost:3000) demonstrates every backend capability:
+The BatteryPass web app (http://localhost:3000) demonstrates every backend capability:
 
 - **Dashboard:** live counts of passports and documents and the most recent passports.
 - **Passports:** a sortable table (or card grid) with search and category/status filters; the

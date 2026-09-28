@@ -3,7 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * MEAtec palette. `brand` is the logo teal (#5AB4B7) and is used for decorative surfaces;
+ * BatteryPass palette. `brand` is the logo teal (#5AB4B7) and is used for decorative surfaces;
  * `accent` is a deeper teal with enough contrast for text and filled buttons.
  */
 :root {

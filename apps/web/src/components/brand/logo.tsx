@@ -1,32 +1,32 @@
-import Image from 'next/image';
+import { BatteryCharging } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const WIDTH = 320;
-const HEIGHT = 73;
+const SIZES = {
+  sm: { mark: 'size-6 rounded-md [&_svg]:size-3.5', text: 'text-base' },
+  md: { mark: 'size-7 rounded-lg [&_svg]:size-4', text: 'text-lg' },
+  lg: { mark: 'size-9 rounded-lg [&_svg]:size-5', text: 'text-2xl' },
+} as const;
 
 interface LogoProps {
   /** `auto` follows the colour theme; `on-dark` is for permanently dark surfaces like the sidebar. */
   tone?: 'auto' | 'on-dark';
+  size?: keyof typeof SIZES;
   className?: string;
-  priority?: boolean;
 }
 
-export function Logo({ tone = 'auto', className, priority }: LogoProps) {
-  // Small static PNGs: served as-is, so the standalone server needs no image optimiser.
-  const common = { width: WIDTH, height: HEIGHT, priority, alt: 'MEAtec', unoptimized: true };
-
-  if (tone === 'on-dark') {
-    return <Image src="/meatec-logo-light.png" {...common} className={cn('h-7 w-auto', className)} />;
-  }
+/** BatteryPass wordmark: teal mark and "Battery", with "Pass" in the ink colour of the surface. */
+export function Logo({ tone = 'auto', size = 'md', className }: LogoProps) {
+  const { mark, text } = SIZES[size];
 
   return (
-    <>
-      <Image src="/meatec-logo.png" {...common} className={cn('h-7 w-auto dark:hidden', className)} />
-      <Image
-        src="/meatec-logo-light.png"
-        {...common}
-        className={cn('hidden h-7 w-auto dark:block', className)}
-      />
-    </>
+    <span className={cn('inline-flex items-center gap-2', className)}>
+      <span className={cn('flex shrink-0 items-center justify-center bg-brand text-white', mark)} aria-hidden>
+        <BatteryCharging strokeWidth={2.25} />
+      </span>
+      <span className={cn('leading-none font-semibold tracking-tight', text)}>
+        <span className="text-brand">Battery</span>
+        <span className={tone === 'on-dark' ? 'text-sidebar-ink' : 'text-ink'}>Pass</span>
+      </span>
+    </span>
   );
 }

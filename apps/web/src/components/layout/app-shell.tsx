@@ -111,7 +111,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex h-full flex-col bg-sidebar">
       <div className="flex h-16 items-center px-5">
         <Link href="/dashboard" onClick={onNavigate} className="rounded-md focus-visible:outline-brand">
-          <Logo tone="on-dark" className="h-6" priority />
+          <Logo tone="on-dark" size="md" />
         </Link>
       </div>
       <p className="px-5 pt-2 pb-2 text-[11px] font-medium tracking-wider text-sidebar-muted/80 uppercase">
@@ -153,7 +153,7 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         <Menu />
       </Button>
       <Link href="/dashboard" className="rounded-md lg:hidden">
-        <Logo className="h-5" />
+        <Logo size="sm" />
       </Link>
 
       <button

@@ -6,7 +6,7 @@ import { Providers } from '@/components/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'MEAtec Battery Passport', template: '%s · MEAtec Battery Passport' },
+  title: { default: 'BatteryPass', template: '%s · BatteryPass' },
   description: 'Manage digital battery passports and their supporting documents.',
 };
 
