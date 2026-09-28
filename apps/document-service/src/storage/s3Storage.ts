@@ -6,7 +6,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import type { Logger } from '@bpp/shared';
+import type { DownloadDisposition, Logger } from '@bpp/shared';
 import type { ObjectStorage, PutObjectInput } from './objectStorage';
 
 export interface S3StorageOptions {
@@ -80,12 +80,16 @@ export class S3Storage implements ObjectStorage {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.options.bucket, Key: key }));
   }
 
-  async getDownloadUrl(key: string, fileName: string): Promise<{ url: string; expiresIn: number }> {
+  async getDownloadUrl(
+    key: string,
+    fileName: string,
+    disposition: DownloadDisposition = 'attachment',
+  ): Promise<{ url: string; expiresIn: number }> {
     const expiresIn = this.options.downloadUrlTtlSeconds;
     const command = new GetObjectCommand({
       Bucket: this.options.bucket,
       Key: key,
-      ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+      ResponseContentDisposition: `${disposition}; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     });
     const url = await getSignedUrl(this.signingClient, command, { expiresIn });
     return { url, expiresIn };

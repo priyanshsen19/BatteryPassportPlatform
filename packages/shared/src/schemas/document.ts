@@ -15,6 +15,16 @@ export const ALLOWED_DOCUMENT_MIME_TYPES = [
 
 export const MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024;
 
+/** Types a browser can render safely inline; everything else is always served as a download. */
+export const PREVIEWABLE_MIME_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'] as const;
+
+export type DownloadDisposition = 'attachment' | 'inline';
+
+/** Query parameters of GET /api/documents/:docId. */
+export const documentDownloadQuerySchema = z.object({
+  disposition: z.enum(['attachment', 'inline']).default('attachment'),
+});
+
 /** Text fields accepted alongside the file in POST /api/documents/upload. */
 export const uploadDocumentFieldsSchema = z.object({
   passportId: objectIdSchema.optional(),
@@ -60,4 +70,5 @@ export interface DocumentDownload {
   document: DocumentDto;
   downloadUrl: string;
   expiresIn: number;
+  disposition: DownloadDisposition;
 }

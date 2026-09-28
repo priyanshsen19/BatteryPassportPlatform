@@ -1,3 +1,5 @@
+import type { DownloadDisposition } from '@bpp/shared';
+
 export interface PutObjectInput {
   key: string;
   body: Buffer;
@@ -8,6 +10,10 @@ export interface PutObjectInput {
 export interface ObjectStorage {
   putObject(input: PutObjectInput): Promise<void>;
   deleteObject(key: string): Promise<void>;
-  getDownloadUrl(key: string, fileName: string): Promise<{ url: string; expiresIn: number }>;
+  getDownloadUrl(
+    key: string,
+    fileName: string,
+    disposition?: DownloadDisposition,
+  ): Promise<{ url: string; expiresIn: number }>;
   isReady(): boolean;
 }

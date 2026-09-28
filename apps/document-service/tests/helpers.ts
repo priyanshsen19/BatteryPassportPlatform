@@ -33,8 +33,15 @@ export class InMemoryStorage implements ObjectStorage {
     this.objects.delete(key);
   }
 
-  async getDownloadUrl(key: string): Promise<{ url: string; expiresIn: number }> {
-    return { url: `https://test-bucket.s3.amazonaws.com/${key}?X-Amz-Signature=fake`, expiresIn: 300 };
+  async getDownloadUrl(
+    key: string,
+    _fileName: string,
+    disposition = 'attachment',
+  ): Promise<{ url: string; expiresIn: number }> {
+    return {
+      url: `https://test-bucket.s3.amazonaws.com/${key}?disposition=${disposition}&X-Amz-Signature=fake`,
+      expiresIn: 300,
+    };
   }
 
   isReady(): boolean {

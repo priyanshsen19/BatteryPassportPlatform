@@ -130,6 +130,38 @@ describe('GET /api/documents/:docId', () => {
     expect(res.body.data.expiresIn).toBe(300);
     expect(res.body.data.downloadUrl).toContain('X-Amz-Signature');
     expect(res.body.data.document.docId).toBe(body.data.docId);
+    expect(res.body.data.disposition).toBe('attachment');
+  });
+
+  it('issues an inline preview link for PDFs', async () => {
+    const { body } = await upload();
+    const res = await request(app)
+      .get(`/api/documents/${body.data.docId}?disposition=inline`)
+      .set('Authorization', USER_AUTH);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.disposition).toBe('inline');
+    expect(res.body.data.downloadUrl).toContain('disposition=inline');
+  });
+
+  it('never issues inline links for types that are not previewable', async () => {
+    const created = await request(app)
+      .post('/api/documents/upload')
+      .set('Authorization', ADMIN_AUTH)
+      .attach('file', Buffer.from('a,b\n1,2'), { filename: 'data.csv', contentType: 'text/csv' });
+
+    const res = await request(app)
+      .get(`/api/documents/${created.body.data.docId}?disposition=inline`)
+      .set('Authorization', USER_AUTH);
+    expect(res.body.data.disposition).toBe('attachment');
+  });
+
+  it('rejects an unknown disposition with 422', async () => {
+    const { body } = await upload();
+    const res = await request(app)
+      .get(`/api/documents/${body.data.docId}?disposition=execute`)
+      .set('Authorization', USER_AUTH);
+    expect(res.status).toBe(422);
   });
 
   it('returns 404 for an unknown document', async () => {

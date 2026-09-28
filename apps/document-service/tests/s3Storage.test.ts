@@ -57,6 +57,15 @@ describe('S3Storage', () => {
     expect(parsed.searchParams.get('response-content-disposition')).toContain('Report.pdf');
   });
 
+  it('signs inline links for in-browser preview', async () => {
+    const { url } = await new S3Storage(options, logger).getDownloadUrl(
+      'documents/p1/a.pdf',
+      'a.pdf',
+      'inline',
+    );
+    expect(new URL(url).searchParams.get('response-content-disposition')).toMatch(/^inline;/);
+  });
+
   it('signs URLs against the public endpoint when one is configured', async () => {
     const storage = new S3Storage(
       {

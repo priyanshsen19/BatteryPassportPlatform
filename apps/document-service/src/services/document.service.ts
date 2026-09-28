@@ -1,9 +1,11 @@
 import {
   AppError,
   Errors,
+  PREVIEWABLE_MIME_TYPES,
   type AuthUser,
   type DocumentDownload,
   type DocumentDto,
+  type DownloadDisposition,
   type Paginated,
   type UpdateDocumentInput,
   type UploadDocumentResult,
@@ -14,6 +16,8 @@ import { toDocumentDto, type DocumentRecord } from '../models/document.model';
 import { documentRepository } from '../repositories/document.repository';
 import { buildObjectKey } from '../storage/objectKey';
 import type { ObjectStorage } from '../storage/objectStorage';
+
+const previewableTypes: ReadonlySet<string> = new Set(PREVIEWABLE_MIME_TYPES);
 
 export interface RequestContext {
   user: AuthUser;
@@ -99,13 +103,28 @@ export function createDocumentService(storage: ObjectStorage, passports: Passpor
       return { items: items.map(toDocumentDto), page, limit, total };
     },
 
-    /** Any authenticated role may download; the link is short-lived and the bucket stays private. */
-    async getDownload(docId: string, ctx: RequestContext): Promise<DocumentDownload> {
+    /**
+     * Any authenticated role may download; the link is short-lived and the bucket stays private.
+     * Inline (preview) links are only issued for PDFs and images; other types are always
+     * served as attachments.
+     */
+    async getDownload(
+      docId: string,
+      ctx: RequestContext,
+      requested: DownloadDisposition = 'attachment',
+    ): Promise<DocumentDownload> {
       const doc = await findOrThrow(docId);
+      const disposition =
+        requested === 'inline' && previewableTypes.has(doc.mimeType) ? 'inline' : 'attachment';
       try {
-        const { url, expiresIn } = await storage.getDownloadUrl(doc.objectKey, doc.fileName);
-        logger.info('Download URL issued', { docId, userId: ctx.user.id, requestId: ctx.requestId });
-        return { document: toDocumentDto(doc), downloadUrl: url, expiresIn };
+        const { url, expiresIn } = await storage.getDownloadUrl(doc.objectKey, doc.fileName, disposition);
+        logger.info('Download URL issued', {
+          docId,
+          disposition,
+          userId: ctx.user.id,
+          requestId: ctx.requestId,
+        });
+        return { document: toDocumentDto(doc), downloadUrl: url, expiresIn, disposition };
       } catch (err) {
         throw storageError('presign', err, { docId, requestId: ctx.requestId });
       }

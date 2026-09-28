@@ -1,4 +1,10 @@
-import { Errors, listDocumentsQuerySchema, parseQuery, sendSuccess } from '@bpp/shared';
+import {
+  Errors,
+  documentDownloadQuerySchema,
+  listDocumentsQuerySchema,
+  parseQuery,
+  sendSuccess,
+} from '@bpp/shared';
 import type { Request, Response } from 'express';
 import type { DocumentService, RequestContext } from '../services/document.service';
 
@@ -24,7 +30,8 @@ export function createDocumentController(service: DocumentService) {
     },
 
     async getDownload(req: Request, res: Response): Promise<void> {
-      sendSuccess(res, await service.getDownload(docIdOf(req), contextOf(req)));
+      const { disposition } = parseQuery(documentDownloadQuerySchema, req.query);
+      sendSuccess(res, await service.getDownload(docIdOf(req), contextOf(req), disposition));
     },
 
     async update(req: Request, res: Response): Promise<void> {

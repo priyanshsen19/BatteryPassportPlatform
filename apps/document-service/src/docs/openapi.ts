@@ -134,7 +134,16 @@ export const openApiSpec = {
         tags: ['Documents'],
         summary: 'Get a downloadable file link',
         description:
-          'Roles: **admin**, **user**. Returns a pre-signed S3 GET URL valid for `expiresIn` seconds.',
+          'Roles: **admin**, **user**. Returns a pre-signed S3 GET URL valid for `expiresIn` seconds. ' +
+          '`disposition=inline` returns a link the browser can display (PDFs and images only; other types ' +
+          'are always served as attachments).',
+        parameters: [
+          {
+            name: 'disposition',
+            in: 'query',
+            schema: { type: 'string', enum: ['attachment', 'inline'], default: 'attachment' },
+          },
+        ],
         responses: {
           200: successResponse(
             'Pre-signed download URL',
@@ -144,15 +153,17 @@ export const openApiSpec = {
                 document: documentRef,
                 downloadUrl: { type: 'string', format: 'uri' },
                 expiresIn: { type: 'integer', example: 300 },
+                disposition: { type: 'string', enum: ['attachment', 'inline'] },
               },
             },
             {
               document: exampleDocument,
               downloadUrl: 'https://bucket.s3.eu-central-1.amazonaws.com/documents/...?X-Amz-Signature=...',
               expiresIn: 300,
+              disposition: 'attachment',
             },
           ),
-          ...errorResponses(400, 401, 404, 502),
+          ...errorResponses(400, 401, 404, 422, 502),
         },
       },
       put: {
