@@ -1,4 +1,10 @@
-import { bearerAuthScheme, errorEnvelopeSchema, errorResponses, healthPath, successResponse } from '@bpp/shared';
+import {
+  bearerAuthScheme,
+  errorEnvelopeSchema,
+  errorResponses,
+  healthPath,
+  successResponse,
+} from '@bpp/shared';
 
 const userSchema = {
   type: 'object',

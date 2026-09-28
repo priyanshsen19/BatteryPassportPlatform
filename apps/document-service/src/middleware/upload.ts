@@ -29,9 +29,13 @@ export function uploadSingleFile(maxSizeBytes: number): RequestHandler {
     return parser(req, res, (err: unknown) => {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return next(Errors.payloadTooLarge(`File exceeds the maximum size of ${maxSizeBytes / 1024 / 1024} MB`));
+          return next(
+            Errors.payloadTooLarge(`File exceeds the maximum size of ${maxSizeBytes / 1024 / 1024} MB`),
+          );
         }
-        return next(Errors.badRequest(`Send exactly one file in the '${FILE_FIELD}' form field`, 'INVALID_UPLOAD'));
+        return next(
+          Errors.badRequest(`Send exactly one file in the '${FILE_FIELD}' form field`, 'INVALID_UPLOAD'),
+        );
       }
       if (err) return next(err);
 

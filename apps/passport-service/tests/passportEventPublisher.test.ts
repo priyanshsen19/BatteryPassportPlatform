@@ -54,8 +54,8 @@ describe('KafkaPassportEventPublisher', () => {
   it('propagates producer errors to the caller', async () => {
     const { kafka, producer } = createFakeKafka();
     producer.send.mockRejectedValueOnce(new Error('broker down'));
-    await expect(new KafkaPassportEventPublisher(kafka, logger).publish('passport.created', 'p1')).rejects.toThrow(
-      'broker down',
-    );
+    await expect(
+      new KafkaPassportEventPublisher(kafka, logger).publish('passport.created', 'p1'),
+    ).rejects.toThrow('broker down');
   });
 });

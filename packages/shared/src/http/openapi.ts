@@ -27,16 +27,48 @@ export const errorEnvelopeSchema = {
 } as const;
 
 const ERROR_EXAMPLES: Record<number, { description: string; code: string; message: string }> = {
-  400: { description: 'Malformed request', code: 'BAD_REQUEST', message: 'Request body contains malformed JSON' },
-  401: { description: 'Missing, invalid or expired token', code: 'UNAUTHORIZED', message: 'Authentication required' },
-  403: { description: 'Authenticated but not allowed', code: 'INSUFFICIENT_ROLE', message: 'This action requires one of the following roles: admin' },
+  400: {
+    description: 'Malformed request',
+    code: 'BAD_REQUEST',
+    message: 'Request body contains malformed JSON',
+  },
+  401: {
+    description: 'Missing, invalid or expired token',
+    code: 'UNAUTHORIZED',
+    message: 'Authentication required',
+  },
+  403: {
+    description: 'Authenticated but not allowed',
+    code: 'INSUFFICIENT_ROLE',
+    message: 'This action requires one of the following roles: admin',
+  },
   404: { description: 'Resource not found', code: 'NOT_FOUND', message: 'Resource not found' },
-  409: { description: 'Conflict with an existing resource', code: 'CONFLICT', message: 'Resource already exists' },
-  413: { description: 'Payload too large', code: 'PAYLOAD_TOO_LARGE', message: 'File exceeds the maximum size' },
-  415: { description: 'Unsupported media type', code: 'UNSUPPORTED_MEDIA_TYPE', message: 'File type is not allowed' },
+  409: {
+    description: 'Conflict with an existing resource',
+    code: 'CONFLICT',
+    message: 'Resource already exists',
+  },
+  413: {
+    description: 'Payload too large',
+    code: 'PAYLOAD_TOO_LARGE',
+    message: 'File exceeds the maximum size',
+  },
+  415: {
+    description: 'Unsupported media type',
+    code: 'UNSUPPORTED_MEDIA_TYPE',
+    message: 'File type is not allowed',
+  },
   422: { description: 'Validation failed', code: 'VALIDATION_ERROR', message: 'Request validation failed' },
-  502: { description: 'Upstream dependency failed', code: 'STORAGE_ERROR', message: 'File storage request failed' },
-  503: { description: 'Dependency unavailable', code: 'AUTH_SERVICE_UNAVAILABLE', message: 'Authentication service is unavailable' },
+  502: {
+    description: 'Upstream dependency failed',
+    code: 'STORAGE_ERROR',
+    message: 'File storage request failed',
+  },
+  503: {
+    description: 'Dependency unavailable',
+    code: 'AUTH_SERVICE_UNAVAILABLE',
+    message: 'Authentication service is unavailable',
+  },
 };
 
 export function errorResponses(...statusCodes: number[]): Record<number, object> {
@@ -82,7 +114,11 @@ export const healthPath = {
     responses: {
       200: {
         description: 'Service and its dependencies are healthy',
-        content: { 'application/json': { example: { status: 'ok', service: 'service-name', dependencies: { mongodb: 'up' } } } },
+        content: {
+          'application/json': {
+            example: { status: 'ok', service: 'service-name', dependencies: { mongodb: 'up' } },
+          },
+        },
       },
       503: { description: 'A dependency is down' },
     },

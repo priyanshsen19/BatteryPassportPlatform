@@ -13,7 +13,9 @@ const user = { email: 'user@example.com', password: 'UserPassw0rd', role: 'user'
 
 async function registerAndLogin(account: typeof admin): Promise<string> {
   await request(app).post('/api/auth/register').send(account);
-  const res = await request(app).post('/api/auth/login').send({ email: account.email, password: account.password });
+  const res = await request(app)
+    .post('/api/auth/login')
+    .send({ email: account.email, password: account.password });
   return res.body.data.token as string;
 }
 
@@ -74,7 +76,10 @@ describe('POST /api/auth/register', () => {
   });
 
   it('rejects malformed JSON with 400', async () => {
-    const res = await request(app).post('/api/auth/register').set('content-type', 'application/json').send('{"email":');
+    const res = await request(app)
+      .post('/api/auth/register')
+      .set('content-type', 'application/json')
+      .send('{"email":');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('MALFORMED_JSON');
   });
@@ -86,7 +91,9 @@ describe('POST /api/auth/login', () => {
   });
 
   it('returns a JWT with only the necessary claims', async () => {
-    const res = await request(app).post('/api/auth/login').send({ email: user.email, password: user.password });
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email: user.email, password: user.password });
 
     expect(res.status).toBe(200);
     expect(res.body.data).toMatchObject({ tokenType: 'Bearer', user: { email: user.email, role: 'user' } });
@@ -98,13 +105,17 @@ describe('POST /api/auth/login', () => {
   });
 
   it('returns 401 for an invalid password', async () => {
-    const res = await request(app).post('/api/auth/login').send({ email: user.email, password: 'WrongPassw0rd' });
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email: user.email, password: 'WrongPassw0rd' });
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
   });
 
   it('returns 401 for an unknown email', async () => {
-    const res = await request(app).post('/api/auth/login').send({ email: 'ghost@example.com', password: 'Whatever1' });
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'ghost@example.com', password: 'Whatever1' });
     expect(res.status).toBe(401);
   });
 });
@@ -125,11 +136,15 @@ describe('GET /api/auth/me (JWT authentication)', () => {
   });
 
   it('returns 401 for a token signed with another secret', async () => {
-    const forged = jwt.sign({ email: 'x@example.com', role: 'admin' }, 'a-completely-different-secret-value!!', {
-      subject: new mongoose.Types.ObjectId().toString(),
-      issuer: 'bpp-auth-service',
-      audience: 'bpp-services',
-    });
+    const forged = jwt.sign(
+      { email: 'x@example.com', role: 'admin' },
+      'a-completely-different-secret-value!!',
+      {
+        subject: new mongoose.Types.ObjectId().toString(),
+        issuer: 'bpp-auth-service',
+        audience: 'bpp-services',
+      },
+    );
     const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${forged}`);
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('INVALID_TOKEN');

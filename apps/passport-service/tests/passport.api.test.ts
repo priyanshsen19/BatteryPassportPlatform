@@ -65,7 +65,10 @@ describe('POST /api/passports', () => {
   });
 
   it('forbids a user from creating a passport', async () => {
-    const res = await request(app).post('/api/passports').set('Authorization', USER_AUTH).send(samplePassport());
+    const res = await request(app)
+      .post('/api/passports')
+      .set('Authorization', USER_AUTH)
+      .send(samplePassport());
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('INSUFFICIENT_ROLE');
     expect(await PassportModel.countDocuments()).toBe(0);
@@ -77,7 +80,11 @@ describe('POST /api/passports', () => {
     const invalid = {
       data: {
         ...body.data,
-        generalInformation: { ...body.data.generalInformation, batteryCategory: 'Spaceship', batteryMass: -1 },
+        generalInformation: {
+          ...body.data.generalInformation,
+          batteryCategory: 'Spaceship',
+          batteryMass: -1,
+        },
         carbonFootprint: undefined,
       },
     };
@@ -198,7 +205,9 @@ describe('PUT /api/passports/:id', () => {
 describe('DELETE /api/passports/:id', () => {
   it('lets an admin delete a passport and emits passport.deleted', async () => {
     const { body: created } = await createPassport();
-    const res = await request(app).delete(`/api/passports/${created.data.id}`).set('Authorization', ADMIN_AUTH);
+    const res = await request(app)
+      .delete(`/api/passports/${created.data.id}`)
+      .set('Authorization', ADMIN_AUTH);
 
     expect(res.status).toBe(200);
     expect(res.body.data).toEqual({ id: created.data.id });
@@ -211,7 +220,9 @@ describe('DELETE /api/passports/:id', () => {
 
   it('forbids a user from deleting a passport', async () => {
     const { body: created } = await createPassport();
-    const res = await request(app).delete(`/api/passports/${created.data.id}`).set('Authorization', USER_AUTH);
+    const res = await request(app)
+      .delete(`/api/passports/${created.data.id}`)
+      .set('Authorization', USER_AUTH);
     expect(res.status).toBe(403);
     expect(await PassportModel.countDocuments()).toBe(1);
   });

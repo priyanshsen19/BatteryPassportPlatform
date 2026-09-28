@@ -35,7 +35,10 @@ export function requireRole(...roles: Role[]): RequestHandler {
     if (!req.user) return next(Errors.unauthorized());
     if (!roles.includes(req.user.role)) {
       return next(
-        Errors.forbidden(`This action requires one of the following roles: ${roles.join(', ')}`, 'INSUFFICIENT_ROLE'),
+        Errors.forbidden(
+          `This action requires one of the following roles: ${roles.join(', ')}`,
+          'INSUFFICIENT_ROLE',
+        ),
       );
     }
     return next();

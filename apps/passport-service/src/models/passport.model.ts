@@ -1,14 +1,11 @@
-import {
-  BATTERY_CATEGORIES,
-  BATTERY_STATUSES,
-  type PassportData,
-  type PassportDto,
-} from '@bpp/shared';
+import { BATTERY_CATEGORIES, BATTERY_STATUSES, type PassportData, type PassportDto } from '@bpp/shared';
 import { Schema, model, type HydratedDocument } from 'mongoose';
 
 /** Same shape as the API model, except manufacturingDate is stored as a real Date. */
 type StoredPassportData = Omit<PassportData, 'generalInformation'> & {
-  generalInformation: Omit<PassportData['generalInformation'], 'manufacturingDate'> & { manufacturingDate: Date };
+  generalInformation: Omit<PassportData['generalInformation'], 'manufacturingDate'> & {
+    manufacturingDate: Date;
+  };
 };
 
 export interface PassportAttributes {
@@ -30,7 +27,10 @@ const passportSchema = new Schema<PassportAttributes>(
       generalInformation: {
         type: subSchema({
           batteryIdentifier: requiredString,
-          batteryModel: { type: subSchema({ id: requiredString, modelName: requiredString }), required: true },
+          batteryModel: {
+            type: subSchema({ id: requiredString, modelName: requiredString }),
+            required: true,
+          },
           batteryMass: { type: Number, required: true, min: 0 },
           batteryCategory: { type: String, enum: BATTERY_CATEGORIES, required: true },
           batteryStatus: { type: String, enum: BATTERY_STATUSES, required: true },
@@ -49,7 +49,13 @@ const passportSchema = new Schema<PassportAttributes>(
           batteryChemistry: requiredString,
           criticalRawMaterials: { type: [String], default: [] },
           hazardousSubstances: {
-            type: [subSchema({ substanceName: requiredString, chemicalFormula: requiredString, casNumber: requiredString })],
+            type: [
+              subSchema({
+                substanceName: requiredString,
+                chemicalFormula: requiredString,
+                casNumber: requiredString,
+              }),
+            ],
             default: [],
           },
         }),

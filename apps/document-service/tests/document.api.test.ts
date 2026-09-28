@@ -171,7 +171,10 @@ describe('PUT /api/documents/:docId', () => {
 
   it('rejects an empty update with 422', async () => {
     const { body } = await upload();
-    const res = await request(app).put(`/api/documents/${body.data.docId}`).set('Authorization', ADMIN_AUTH).send({});
+    const res = await request(app)
+      .put(`/api/documents/${body.data.docId}`)
+      .set('Authorization', ADMIN_AUTH)
+      .send({});
     expect(res.status).toBe(422);
   });
 
@@ -190,7 +193,9 @@ describe('DELETE /api/documents/:docId', () => {
     const { body } = await upload();
     const saved = await DocumentModel.findById(body.data.docId);
 
-    const res = await request(app).delete(`/api/documents/${body.data.docId}`).set('Authorization', ADMIN_AUTH);
+    const res = await request(app)
+      .delete(`/api/documents/${body.data.docId}`)
+      .set('Authorization', ADMIN_AUTH);
 
     expect(res.status).toBe(200);
     expect(res.body.data).toEqual({ docId: body.data.docId });
@@ -202,14 +207,18 @@ describe('DELETE /api/documents/:docId', () => {
     const { body } = await upload();
     storage.failNextDelete = true;
 
-    const res = await request(app).delete(`/api/documents/${body.data.docId}`).set('Authorization', ADMIN_AUTH);
+    const res = await request(app)
+      .delete(`/api/documents/${body.data.docId}`)
+      .set('Authorization', ADMIN_AUTH);
     expect(res.status).toBe(502);
     expect(await DocumentModel.countDocuments()).toBe(1);
   });
 
   it('forbids users from deleting', async () => {
     const { body } = await upload();
-    const res = await request(app).delete(`/api/documents/${body.data.docId}`).set('Authorization', USER_AUTH);
+    const res = await request(app)
+      .delete(`/api/documents/${body.data.docId}`)
+      .set('Authorization', USER_AUTH);
     expect(res.status).toBe(403);
   });
 });

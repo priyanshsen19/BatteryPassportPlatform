@@ -3,12 +3,7 @@ import { z } from 'zod';
 export const ROLES = ['admin', 'user'] as const;
 export type Role = (typeof ROLES)[number];
 
-const emailSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .max(254)
-  .pipe(z.email('Enter a valid email address'));
+const emailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email('Enter a valid email address'));
 
 export const registerSchema = z.object({
   email: emailSchema,

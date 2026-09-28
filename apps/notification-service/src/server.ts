@@ -31,7 +31,11 @@ async function main(): Promise<void> {
   );
 
   await consumer.start();
-  const server = await startHttpServer(createApp(() => consumer.isConnected()), config.port, logger);
+  const server = await startHttpServer(
+    createApp(() => consumer.isConnected()),
+    config.port,
+    logger,
+  );
 
   registerGracefulShutdown(logger, [() => closeServer(server), () => consumer.stop()]);
 }

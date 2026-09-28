@@ -18,7 +18,8 @@ export class AppError extends Error {
 
 export const Errors = {
   badRequest: (message: string, code = 'BAD_REQUEST') => new AppError(400, code, message),
-  unauthorized: (message = 'Authentication required', code = 'UNAUTHORIZED') => new AppError(401, code, message),
+  unauthorized: (message = 'Authentication required', code = 'UNAUTHORIZED') =>
+    new AppError(401, code, message),
   forbidden: (message = 'You do not have permission to perform this action', code = 'FORBIDDEN') =>
     new AppError(403, code, message),
   notFound: (code: string, message: string) => new AppError(404, code, message),

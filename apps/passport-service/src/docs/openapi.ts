@@ -40,7 +40,11 @@ const passportDataSchema = {
           type: 'array',
           items: {
             type: 'object',
-            properties: { substanceName: str, chemicalFormula: str, casNumber: { type: 'string', example: '21324-40-3' } },
+            properties: {
+              substanceName: str,
+              chemicalFormula: str,
+              casNumber: { type: 'string', example: '21324-40-3' },
+            },
           },
         },
       },
@@ -71,7 +75,11 @@ const exampleData = {
       { substanceName: 'Lithium Hexafluorophosphate', chemicalFormula: 'LiPF6', casNumber: '21324-40-3' },
     ],
   },
-  carbonFootprint: { totalCarbonFootprint: 850, measurementUnit: 'kg CO2e', methodology: 'Life Cycle Assessment (LCA)' },
+  carbonFootprint: {
+    totalCarbonFootprint: 850,
+    measurementUnit: 'kg CO2e',
+    methodology: 'Life Cycle Assessment (LCA)',
+  },
 };
 
 const examplePassport = {
@@ -92,7 +100,13 @@ const requestBody = {
   },
 };
 
-const idParameter = { name: 'id', in: 'path', required: true, schema: { type: 'string' }, example: examplePassport.id };
+const idParameter = {
+  name: 'id',
+  in: 'path',
+  required: true,
+  schema: { type: 'string' },
+  example: examplePassport.id,
+};
 const passportRef = { $ref: '#/components/schemas/Passport' };
 
 export const openApiSpec = {
@@ -190,7 +204,11 @@ export const openApiSpec = {
         summary: 'Delete a passport',
         description: 'Role: **admin**. Emits `passport.deleted`.',
         responses: {
-          200: successResponse('Passport deleted', { type: 'object', properties: { id: str } }, { id: examplePassport.id }),
+          200: successResponse(
+            'Passport deleted',
+            { type: 'object', properties: { id: str } },
+            { id: examplePassport.id },
+          ),
           ...errorResponses(400, 401, 403, 404),
         },
       },

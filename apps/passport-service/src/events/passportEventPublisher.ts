@@ -41,7 +41,11 @@ export class KafkaPassportEventPublisher implements PassportEventPublisher {
     this.logger.info('Kafka producer connected', { topic: PASSPORT_EVENTS_TOPIC });
   }
 
-  async publish(eventType: PassportEventType, passportId: string, requestId?: string): Promise<PassportEvent> {
+  async publish(
+    eventType: PassportEventType,
+    passportId: string,
+    requestId?: string,
+  ): Promise<PassportEvent> {
     const event = createPassportEvent(eventType, passportId);
 
     // Keyed by passportId so all events for one passport land on the same partition, in order.
@@ -57,7 +61,12 @@ export class KafkaPassportEventPublisher implements PassportEventPublisher {
       ],
     });
 
-    this.logger.info('Passport event published', { eventId: event.eventId, eventType, passportId, requestId });
+    this.logger.info('Passport event published', {
+      eventId: event.eventId,
+      eventType,
+      passportId,
+      requestId,
+    });
     return event;
   }
 

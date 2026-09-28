@@ -13,8 +13,12 @@ const authApp = createApp();
 // A minimal protected API wired with the same middleware the services use.
 const protectedApp = express();
 protectedApp.use(requestId());
-protectedApp.get('/admin-only', authenticateJWT, requireRole('admin'), (_req, res) => sendSuccess(res, { ok: true }));
-protectedApp.get('/any-role', authenticateJWT, requireRole('admin', 'user'), (_req, res) => sendSuccess(res, { ok: true }));
+protectedApp.get('/admin-only', authenticateJWT, requireRole('admin'), (_req, res) =>
+  sendSuccess(res, { ok: true }),
+);
+protectedApp.get('/any-role', authenticateJWT, requireRole('admin', 'user'), (_req, res) =>
+  sendSuccess(res, { ok: true }),
+);
 protectedApp.use(createErrorHandler(logger, { exposeInternalErrors: false }));
 
 let mongod: MongoMemoryServer;
@@ -39,18 +43,24 @@ afterAll(async () => {
 
 describe('requireRole', () => {
   it('allows an admin through an admin-only route', async () => {
-    const res = await request(protectedApp).get('/admin-only').set('Authorization', `Bearer ${await tokenFor('admin')}`);
+    const res = await request(protectedApp)
+      .get('/admin-only')
+      .set('Authorization', `Bearer ${await tokenFor('admin')}`);
     expect(res.status).toBe(200);
   });
 
   it('rejects a user from an admin-only route with 403', async () => {
-    const res = await request(protectedApp).get('/admin-only').set('Authorization', `Bearer ${await tokenFor('user')}`);
+    const res = await request(protectedApp)
+      .get('/admin-only')
+      .set('Authorization', `Bearer ${await tokenFor('user')}`);
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('INSUFFICIENT_ROLE');
   });
 
   it('allows a user through a route open to both roles', async () => {
-    const res = await request(protectedApp).get('/any-role').set('Authorization', `Bearer ${await tokenFor('user')}`);
+    const res = await request(protectedApp)
+      .get('/any-role')
+      .set('Authorization', `Bearer ${await tokenFor('user')}`);
     expect(res.status).toBe(200);
   });
 

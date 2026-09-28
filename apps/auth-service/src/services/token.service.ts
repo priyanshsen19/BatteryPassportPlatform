@@ -28,7 +28,8 @@ export const tokenService = {
         algorithms: ['HS256'],
       });
     } catch (err) {
-      if (err instanceof jwt.TokenExpiredError) throw Errors.unauthorized('Token has expired', 'TOKEN_EXPIRED');
+      if (err instanceof jwt.TokenExpiredError)
+        throw Errors.unauthorized('Token has expired', 'TOKEN_EXPIRED');
       throw Errors.unauthorized('Invalid token', 'INVALID_TOKEN');
     }
 

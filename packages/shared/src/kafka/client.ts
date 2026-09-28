@@ -56,7 +56,12 @@ export function createKafkaClient(env: KafkaEnv, logger: Logger): Kafka {
  * Creates the topic if it does not exist yet (idempotent). Both producer and consumer call it
  * so start-up order does not matter and the partition count is always the intended one.
  */
-export async function ensureTopic(kafka: Kafka, topic: string, numPartitions: number, logger: Logger): Promise<void> {
+export async function ensureTopic(
+  kafka: Kafka,
+  topic: string,
+  numPartitions: number,
+  logger: Logger,
+): Promise<void> {
   const admin = kafka.admin();
   await admin.connect();
   try {

@@ -24,7 +24,11 @@ async function main(): Promise<void> {
     logger,
   );
 
-  registerGracefulShutdown(logger, [() => closeServer(server), () => publisher.disconnect(), disconnectMongo]);
+  registerGracefulShutdown(logger, [
+    () => closeServer(server),
+    () => publisher.disconnect(),
+    disconnectMongo,
+  ]);
 }
 
 main().catch((err: Error) => {

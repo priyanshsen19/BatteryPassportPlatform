@@ -59,7 +59,12 @@ describe('S3Storage', () => {
 
   it('signs URLs against the public endpoint when one is configured', async () => {
     const storage = new S3Storage(
-      { ...options, endpoint: 'http://localstack:4566', publicEndpoint: 'http://localhost:4566', forcePathStyle: true },
+      {
+        ...options,
+        endpoint: 'http://localstack:4566',
+        publicEndpoint: 'http://localhost:4566',
+        forcePathStyle: true,
+      },
       logger,
     );
     const { url } = await storage.getDownloadUrl('documents/p1/a.pdf', 'a.pdf');

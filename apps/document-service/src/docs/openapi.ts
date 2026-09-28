@@ -21,7 +21,13 @@ const exampleDocument = {
   updatedAt: '2024-10-05T10:00:00.000Z',
 };
 
-const docIdParameter = { name: 'docId', in: 'path', required: true, schema: str, example: exampleDocument.docId };
+const docIdParameter = {
+  name: 'docId',
+  in: 'path',
+  required: true,
+  schema: str,
+  example: exampleDocument.docId,
+};
 const documentRef = { $ref: '#/components/schemas/Document' };
 
 export const openApiSpec = {
@@ -84,7 +90,11 @@ export const openApiSpec = {
               type: 'object',
               properties: { docId: str, fileName: str, createdAt: { type: 'string', format: 'date-time' } },
             },
-            { docId: exampleDocument.docId, fileName: exampleDocument.fileName, createdAt: exampleDocument.createdAt },
+            {
+              docId: exampleDocument.docId,
+              fileName: exampleDocument.fileName,
+              createdAt: exampleDocument.createdAt,
+            },
           ),
           ...errorResponses(400, 401, 403, 413, 415, 422, 502),
         },
@@ -123,7 +133,8 @@ export const openApiSpec = {
       get: {
         tags: ['Documents'],
         summary: 'Get a downloadable file link',
-        description: 'Roles: **admin**, **user**. Returns a pre-signed S3 GET URL valid for `expiresIn` seconds.',
+        description:
+          'Roles: **admin**, **user**. Returns a pre-signed S3 GET URL valid for `expiresIn` seconds.',
         responses: {
           200: successResponse(
             'Pre-signed download URL',
@@ -147,7 +158,8 @@ export const openApiSpec = {
       put: {
         tags: ['Documents'],
         summary: 'Update file metadata',
-        description: 'Role: **admin**. Updates `fileName` and/or `passportId`; the stored object is not replaced.',
+        description:
+          'Role: **admin**. Updates `fileName` and/or `passportId`; the stored object is not replaced.',
         requestBody: {
           required: true,
           content: {
@@ -161,7 +173,10 @@ export const openApiSpec = {
           },
         },
         responses: {
-          200: successResponse('Updated metadata', documentRef, { ...exampleDocument, fileName: 'lca-report-2024.pdf' }),
+          200: successResponse('Updated metadata', documentRef, {
+            ...exampleDocument,
+            fileName: 'lca-report-2024.pdf',
+          }),
           ...errorResponses(400, 401, 403, 404, 422),
         },
       },
@@ -170,7 +185,11 @@ export const openApiSpec = {
         summary: 'Delete a file',
         description: 'Role: **admin**. Deletes the S3 object, then its metadata.',
         responses: {
-          200: successResponse('Deleted', { type: 'object', properties: { docId: str } }, { docId: exampleDocument.docId }),
+          200: successResponse(
+            'Deleted',
+            { type: 'object', properties: { docId: str } },
+            { docId: exampleDocument.docId },
+          ),
           ...errorResponses(400, 401, 403, 404, 502),
         },
       },

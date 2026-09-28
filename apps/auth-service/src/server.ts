@@ -1,4 +1,10 @@
-import { closeServer, connectMongo, disconnectMongo, registerGracefulShutdown, startHttpServer } from '@bpp/shared';
+import {
+  closeServer,
+  connectMongo,
+  disconnectMongo,
+  registerGracefulShutdown,
+  startHttpServer,
+} from '@bpp/shared';
 import { createApp } from './app';
 import { config, logger } from './config';
 

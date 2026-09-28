@@ -38,9 +38,11 @@ describe('EmailNotifier', () => {
     const sendMail = jest.spyOn(transporter, 'sendMail');
     const event = createPassportEvent('passport.deleted', 'p-9');
 
-    await new EmailNotifier(transporter, { from: 'from@example.com', to: 'ops@example.com' }, silentLogger).send(
-      buildNotification(event),
-    );
+    await new EmailNotifier(
+      transporter,
+      { from: 'from@example.com', to: 'ops@example.com' },
+      silentLogger,
+    ).send(buildNotification(event));
 
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({

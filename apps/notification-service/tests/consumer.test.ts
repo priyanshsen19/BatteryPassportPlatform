@@ -18,13 +18,18 @@ class RecordingDispatcher implements EventDispatcher {
 const encode = (value: unknown) => Buffer.from(JSON.stringify(value));
 
 describe('PassportEventHandler', () => {
-  it.each(['passport.created', 'passport.updated', 'passport.deleted'] as const)('dispatches %s', async (type) => {
-    const dispatcher = new RecordingDispatcher();
-    const event = createPassportEvent(type, 'p-1');
+  it.each(['passport.created', 'passport.updated', 'passport.deleted'] as const)(
+    'dispatches %s',
+    async (type) => {
+      const dispatcher = new RecordingDispatcher();
+      const event = createPassportEvent(type, 'p-1');
 
-    await expect(new PassportEventHandler(dispatcher, logger).handle(encode(event), meta)).resolves.toBe('processed');
-    expect(dispatcher.events).toEqual([event]);
-  });
+      await expect(new PassportEventHandler(dispatcher, logger).handle(encode(event), meta)).resolves.toBe(
+        'processed',
+      );
+      expect(dispatcher.events).toEqual([event]);
+    },
+  );
 
   it('skips messages that are not JSON', async () => {
     const dispatcher = new RecordingDispatcher();

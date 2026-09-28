@@ -25,7 +25,9 @@ export const kafkaEnvSchema = z.object({
 export function loadEnv<S extends z.ZodType>(schema: S, source: NodeJS.ProcessEnv = process.env): z.infer<S> {
   const result = schema.safeParse(source);
   if (!result.success) {
-    const problems = result.error.issues.map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`).join('\n');
+    const problems = result.error.issues
+      .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
+      .join('\n');
     throw new Error(`Invalid environment configuration:\n${problems}`);
   }
   return result.data;

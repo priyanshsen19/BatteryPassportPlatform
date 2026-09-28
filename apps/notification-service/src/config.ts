@@ -30,7 +30,8 @@ export const config = {
         host: env.SMTP_HOST as string,
         port: env.SMTP_PORT,
         secure: env.SMTP_SECURE,
-        auth: env.SMTP_USER && env.SMTP_PASSWORD ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } : undefined,
+        auth:
+          env.SMTP_USER && env.SMTP_PASSWORD ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } : undefined,
         from: env.SMTP_FROM,
         to: env.NOTIFICATION_EMAIL_TO as string,
       }

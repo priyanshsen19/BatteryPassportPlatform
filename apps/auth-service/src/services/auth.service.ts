@@ -8,7 +8,8 @@ import { tokenService } from './token.service';
 // Compared against when the email is unknown, so response time does not reveal whether
 // an account exists.
 let dummyHash: string | undefined;
-const getDummyHash = async () => (dummyHash ??= await bcrypt.hash('timing-equalisation', config.bcryptSaltRounds));
+const getDummyHash = async () =>
+  (dummyHash ??= await bcrypt.hash('timing-equalisation', config.bcryptSaltRounds));
 
 export const authService = {
   async register(input: { email: string; password: string; role: Role }): Promise<UserDto> {
@@ -24,7 +25,10 @@ export const authService = {
 
   async login(input: { email: string; password: string }): Promise<LoginResult> {
     const user = await userRepository.findByEmailWithPassword(input.email);
-    const passwordMatches = await bcrypt.compare(input.password, user?.passwordHash ?? (await getDummyHash()));
+    const passwordMatches = await bcrypt.compare(
+      input.password,
+      user?.passwordHash ?? (await getDummyHash()),
+    );
 
     if (!user || !passwordMatches) {
       throw Errors.unauthorized('Invalid email or password', 'INVALID_CREDENTIALS');

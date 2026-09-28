@@ -19,7 +19,8 @@ function toAppError(err: unknown): AppError | null {
   if (err instanceof ZodError) return Errors.validation(formatZodIssues(err));
 
   const e = (err ?? {}) as LibraryError;
-  if (e.type === 'entity.parse.failed') return Errors.badRequest('Request body contains malformed JSON', 'MALFORMED_JSON');
+  if (e.type === 'entity.parse.failed')
+    return Errors.badRequest('Request body contains malformed JSON', 'MALFORMED_JSON');
   if (e.type === 'entity.too.large') return Errors.payloadTooLarge('Request body is too large');
   if (e.name === 'CastError') return Errors.badRequest(`Invalid value for '${e.path}'`, 'INVALID_ID');
   if (e.code === 11000) {
@@ -33,7 +34,10 @@ export function notFoundHandler(req: Request, _res: Response, next: NextFunction
   next(Errors.notFound('ROUTE_NOT_FOUND', `Route ${req.method} ${req.path} not found`));
 }
 
-export function createErrorHandler(logger: Logger, options: { exposeInternalErrors: boolean }): ErrorRequestHandler {
+export function createErrorHandler(
+  logger: Logger,
+  options: { exposeInternalErrors: boolean },
+): ErrorRequestHandler {
   return (err: unknown, req: Request, res: Response, _next: NextFunction) => {
     const appError = toAppError(err);
     const statusCode = appError?.statusCode ?? 500;

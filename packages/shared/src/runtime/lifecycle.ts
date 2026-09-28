@@ -43,7 +43,9 @@ export function registerGracefulShutdown(logger: Logger, tasks: CleanupTask[], t
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('unhandledRejection', (reason) => {
-    logger.error('Unhandled promise rejection', { error: reason instanceof Error ? reason.stack : String(reason) });
+    logger.error('Unhandled promise rejection', {
+      error: reason instanceof Error ? reason.stack : String(reason),
+    });
   });
 }
 

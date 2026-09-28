@@ -9,7 +9,11 @@ export interface PassportClient {
  * Checks with the Passport Service (over HTTP, forwarding the caller's token) that a passport
  * exists before documents are linked to it. This service never reads the passport database.
  */
-export function createPassportClient(options: { baseUrl: string; timeoutMs: number; logger: Logger }): PassportClient {
+export function createPassportClient(options: {
+  baseUrl: string;
+  timeoutMs: number;
+  logger: Logger;
+}): PassportClient {
   const baseUrl = options.baseUrl.replace(/\/$/, '');
 
   return {
@@ -27,9 +31,14 @@ export function createPassportClient(options: { baseUrl: string; timeoutMs: numb
 
       if (response.ok) return;
       if (response.status === 404) {
-        throw Errors.validation([{ field: 'passportId', message: `Battery passport ${passportId} does not exist` }]);
+        throw Errors.validation([
+          { field: 'passportId', message: `Battery passport ${passportId} does not exist` },
+        ]);
       }
-      options.logger.error('Passport service returned an unexpected status', { requestId, status: response.status });
+      options.logger.error('Passport service returned an unexpected status', {
+        requestId,
+        status: response.status,
+      });
       throw Errors.badGateway('PASSPORT_SERVICE_ERROR', 'Passport service returned an unexpected response');
     },
   };

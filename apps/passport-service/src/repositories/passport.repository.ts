@@ -23,7 +23,11 @@ export const passportRepository = {
   },
 
   replaceData(id: string, data: PassportData, updatedBy: string): Promise<PassportDocument | null> {
-    return PassportModel.findByIdAndUpdate(id, { $set: { data, updatedBy } }, { new: true, runValidators: true }).exec();
+    return PassportModel.findByIdAndUpdate(
+      id,
+      { $set: { data, updatedBy } },
+      { new: true, runValidators: true },
+    ).exec();
   },
 
   deleteById(id: string): Promise<PassportDocument | null> {

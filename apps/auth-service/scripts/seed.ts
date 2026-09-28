@@ -28,7 +28,10 @@ async function main(): Promise<void> {
 
     if (response.status === 201) console.log(`Created ${account.role}: ${account.email}`);
     else if (response.status === 409) console.log(`Already exists: ${account.email}`);
-    else throw new Error(`Registering ${account.email} failed with HTTP ${response.status}: ${await response.text()}`);
+    else
+      throw new Error(
+        `Registering ${account.email} failed with HTTP ${response.status}: ${await response.text()}`,
+      );
   }
 }
 
