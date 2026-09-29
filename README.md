@@ -588,11 +588,12 @@ Notes:
   web app recognises this (the services always answer with JSON), waits up to about a minute and
   retries, and it starts waking all services as soon as the sign-in page opens, so visitors see a
   slower first load instead of an error.
-- **Keep-alive (optional).** [`.github/workflows/keep-alive.yml`](.github/workflows/keep-alive.yml)
-  pings every service every 10 minutes when the repository variable `KEEP_ALIVE` is `true`, or once
-  on demand from the Actions tab. It is off by default because free instance hours are shared by
-  the workspace (750 a month) and five always-on services need about 3,600; use it for an
-  evaluation or demo window, or move the services to a paid instance type for permanent uptime.
+- **Keep-alive.** [`.github/workflows/keep-alive.yml`](.github/workflows/keep-alive.yml) keeps
+  web, auth, passport and document awake on weekdays 09:30–17:30 IST (04:00–12:00 UTC) by calling
+  them every 10 minutes. Free instance hours are shared by the workspace (750 a month, enough for
+  one service around the clock), and this window uses about 730 of them; outside it, the first
+  visit waits for a cold start. Set the repository variable `KEEP_ALIVE=false` to stop it, run it
+  from the Actions tab to wake everything at any time, or use paid instances for permanent uptime.
 - Render re-applies fixed `value:` entries from `render.yaml` on every Blueprint sync. Settings
   that depend on your accounts (`AWS_REGION`, `KAFKA_SSL`, `KAFKA_SASL_MECHANISM`, …) are therefore
   `sync: false`, so values edited in the dashboard are kept. `AWS_REGION` must be the bucket's
