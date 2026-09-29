@@ -36,6 +36,8 @@ services:
         sync: false # first admin account, created or promoted at startup
       - key: BOOTSTRAP_ADMIN_PASSWORD
         sync: false # used only if that account does not exist yet
+      - key: ADMIN_ACCESS_CODE
+        sync: false # optional; lets people with this code sign up as admin
       - key: PUBLIC_APP_URL
         sync: false # https://bpp-web.onrender.com (password reset links)
       - key: SMTP_HOST

@@ -50,6 +50,16 @@ export async function getSessionToken(): Promise<string | undefined> {
   return (await cookies()).get(SESSION_COOKIE)?.value;
 }
 
+/**
+ * The visitor's IP address, forwarded to the auth service so its rate limits apply per visitor
+ * rather than to the web server's own address. Vercel sets `x-forwarded-for` itself.
+ */
+export function clientIpHeader(request: Request): Record<string, string> {
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip')?.trim();
+  return ip ? { 'x-client-ip': ip } : {};
+}
+
 export function errorResponse(status: number, code: string, message: string): NextResponse<ApiFailure> {
   return NextResponse.json({ success: false, error: { code, message } }, { status });
 }

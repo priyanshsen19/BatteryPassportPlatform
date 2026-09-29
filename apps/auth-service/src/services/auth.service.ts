@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import { createHash, timingSafeEqual } from 'crypto';
 import { Errors, type AuthUser, type LoginResult, type Role, type UserDto } from '@bpp/shared';
 import { config, logger } from '../config';
 import { toUserDto, type UserDocument } from '../models/user.model';
@@ -28,9 +29,35 @@ function issueSession(user: UserDocument): LoginResult {
   };
 }
 
+/** Compares hashes of equal length so the check takes the same time for every guess. */
+export function isValidAccessCode(code: string): boolean {
+  const expected = config.adminAccessCode;
+  if (!expected) return false;
+  const digest = (value: string) => createHash('sha256').update(value).digest();
+  return timingSafeEqual(digest(code), digest(expected));
+}
+
+/**
+ * A valid access code creates an `admin`. Without one, or with a wrong one, the account is a
+ * `user`: registration never fails because of the code, and a requested `role` alone grants
+ * nothing (`developer` and `tester` are assigned by admins on the User roles page).
+ */
+function registrationRole(accessCode: string | undefined): { role: Role; accessCodeRejected: boolean } {
+  if (accessCode !== undefined && isValidAccessCode(accessCode)) {
+    return { role: 'admin', accessCodeRejected: false };
+  }
+  return { role: 'user', accessCodeRejected: accessCode !== undefined };
+}
+
 export const authService = {
-  /** Registers with the requested role (`user` when none is given), as the assignment specifies. */
-  async register(input: { email: string; password: string; role?: Role }): Promise<UserDto> {
+  /** Registers an account: `admin` with a valid access code, otherwise `user`. */
+  async register(input: {
+    email: string;
+    password: string;
+    role?: Role;
+    accessCode?: string;
+  }): Promise<{ user: UserDto; accessCodeRejected: boolean }> {
+    const { role, accessCodeRejected } = registrationRole(input.accessCode);
     if (await userRepository.existsByEmail(input.email)) {
       throw Errors.conflict('EMAIL_ALREADY_REGISTERED', 'An account with this email already exists');
     }
@@ -39,10 +66,10 @@ export const authService = {
     const user = await userRepository.create({
       email: input.email,
       passwordHash,
-      role: input.role ?? 'user',
+      role,
     });
-    logger.info('User registered', { userId: user.id, role: user.role });
-    return toUserDto(user);
+    logger.info('User registered', { userId: user.id, role: user.role, accessCodeRejected });
+    return { user: toUserDto(user), accessCodeRejected };
   },
 
   async login(input: { email: string; password: string }): Promise<LoginResult> {

@@ -52,7 +52,8 @@ Use a separate private window for each account so sessions don't mix.
 
 **1. Sign up**
 
-- Do: **Create one** on the sign-in page; register with an email and password.
+- Do: **Create one** on the sign-in page; keep **User** selected and register with an email and
+  password.
 - Expect: the dashboard opens and the sidebar shows the role **User**.
 
 **2. Read-only access**
@@ -60,11 +61,15 @@ Use a separate private window for each account so sessions don't mix.
 - Do: as that user, open **Passports**, then a passport.
 - Expect: the 10 sample passports are listed; there are no New, Edit, Delete or upload controls.
 
-**3. Admin access**
+**3. Admin sign-up with the access code**
 
-- Do: sign in as an admin: the bootstrap admin, or an account registered through the API with
-  `"role":"admin"` (see [3.1](#31-auth-register-login-roles)).
-- Expect: **User roles** appears in the sidebar; New passport, Edit and Delete are available.
+- Do: in another window, **Create one** → choose **Admin**, enter an email, a password and a
+  wrong access code first.
+- Expect: "Wrong access code. 2 attempts left." and no account is created. After three wrong
+  codes: "Too many attempts. Please try again in 15 minutes."
+- Do: in a fresh private window, choose **Admin** again and enter the access code you were given.
+- Expect: the dashboard opens as **Admin**; **User roles** appears in the sidebar and New
+  passport, Edit and Delete are available.
 
 **4. Assign a role**
 
@@ -166,10 +171,15 @@ The commands use `jq` to pull values out of responses (`brew install jq`).
 ### 3.1 Auth: register, login, roles
 
 ```bash
-# Register one account per role (role is optional and defaults to "user")
-for r in admin developer tester user; do
+# The admin access code you were given
+CODE='paste-the-access-code'
+
+# Register an admin with the code, and three plain accounts (these start as "user")
+curl -s -X POST $AUTH/api/auth/register -H 'content-type: application/json' \
+  -d "{\"email\":\"admin.demo@example.com\",\"password\":\"Passw0rd!demo\",\"accessCode\":\"$CODE\"}"
+for r in developer tester user; do
   curl -s -X POST $AUTH/api/auth/register -H 'content-type: application/json' \
-    -d "{\"email\":\"$r.demo@example.com\",\"password\":\"Passw0rd!demo\",\"role\":\"$r\"}"
+    -d "{\"email\":\"$r.demo@example.com\",\"password\":\"Passw0rd!demo\"}"
   echo
 done
 
@@ -178,7 +188,16 @@ login() {
   curl -s -X POST $AUTH/api/auth/login -H 'content-type: application/json' \
     -d "{\"email\":\"$1.demo@example.com\",\"password\":\"Passw0rd!demo\"}" | jq -r .data.token
 }
-ADMIN=$(login admin); DEV=$(login developer); TESTER=$(login tester); USER=$(login user)
+ADMIN=$(login admin)
+
+# Developer and tester are assigned by an admin
+for r in developer tester; do
+  ID=$(curl -s "$AUTH/api/auth/users?q=$r.demo" -H "authorization: Bearer $ADMIN" \
+    | jq -r '.data.items[0].id')
+  curl -s -X PATCH $AUTH/api/auth/users/$ID/role -H "authorization: Bearer $ADMIN" \
+    -H 'content-type: application/json' -d "{\"role\":\"$r\"}" | jq -r .data.role
+done
+DEV=$(login developer); TESTER=$(login tester); USER=$(login user)
 
 # Current user -> role "developer"
 curl -s $AUTH/api/auth/me -H "authorization: Bearer $DEV" | jq
@@ -189,8 +208,15 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST $AUTH/api/auth/login \
   -d '{"email":"admin.demo@example.com","password":"wrong-password"}'
 ```
 
-Expected: `201` for each registration (`409` if it already exists), a JWT for each login and `401`
-for the wrong password.
+Expected: `201` for each registration (`409` if it already exists), `admin` only for the account
+registered with the code, a JWT for each login and `401` for the wrong password.
+
+```bash
+# Check a code without registering: 200 for the right code, 403 for a wrong one.
+# The RateLimit header shows the attempts left; after 3 wrong codes -> 429.
+curl -s -i -X POST $AUTH/api/auth/access-code/verify -H 'content-type: application/json' \
+  -d '{"accessCode":"wrong-code"}' | grep -iE '^HTTP|^ratelimit'
+```
 
 ### 3.2 Passports: CRUD and role checks
 
@@ -354,9 +380,27 @@ curl -s -X PATCH $AUTH/api/auth/users/$USER_ID/role -H "authorization: Bearer $A
   -H 'content-type: application/json' -d '{"role":"developer"}' | jq .data.role
 ```
 
+### 3.7 Rate limits
+
+```bash
+# 10 failed logins for one email, then 429 for 15 minutes
+for i in $(seq 1 11); do
+  curl -s -o /dev/null -w '%{http_code} ' -X POST $AUTH/api/auth/login \
+    -H 'content-type: application/json' \
+    -d '{"email":"limit.demo@example.com","password":"wrong-password"}'
+done; echo
+
+# 3 reset emails per address, then 429
+for i in $(seq 1 4); do
+  curl -s -o /dev/null -w '%{http_code} ' -X POST $AUTH/api/auth/forgot-password \
+    -H 'content-type: application/json' -d '{"email":"limit.demo@example.com"}'
+done; echo
+```
+
 ## Requirements covered
 
 - **Register and login with JWT, bcrypt and role middleware:** 3.1 and web steps 1–5.
+- **Admin access code and rate limiting:** 3.1, 3.7 and web step 3.
 - **Passport create, view, update and delete, with admin-only writes:** 3.2, 3.4 and web
   steps 6–7.
 - **Kafka `passport.created`, `passport.updated`, `passport.deleted` → notification service:**

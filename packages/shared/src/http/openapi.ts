@@ -43,6 +43,11 @@ const ERROR_EXAMPLES: Record<number, { description: string; code: string; messag
     message: 'This action requires one of the following roles: admin',
   },
   404: { description: 'Resource not found', code: 'NOT_FOUND', message: 'Resource not found' },
+  429: {
+    description: 'Too many attempts',
+    code: 'TOO_MANY_REQUESTS',
+    message: 'Too many attempts. Please try again in 15 minutes.',
+  },
   409: {
     description: 'Conflict with an existing resource',
     code: 'CONFLICT',

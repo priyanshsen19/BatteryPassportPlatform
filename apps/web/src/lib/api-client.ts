@@ -1,6 +1,9 @@
 import type { ApiResponse, ErrorDetail } from '@bpp/shared/schemas';
 
 export class ApiError extends Error {
+  /** Attempts left before a rate limit applies, when the server reports it. */
+  remainingAttempts?: number;
+
   constructor(
     readonly status: number,
     readonly code: string,
@@ -71,6 +74,17 @@ export const authApi = {
     fetch('/api/auth/register', json('POST', body)).then((r) =>
       parseResponse<{ user: unknown }>(r, { redirectOn401: false }),
     ),
+  verifyAccessCode: async (accessCode: string) => {
+    const response = await fetch('/api/auth/access-code', json('POST', { accessCode }));
+    // e.g. "limit=3, remaining=1, reset=840": wrong attempts left before a temporary block.
+    const remaining = /remaining=(\d+)/.exec(response.headers.get('ratelimit') ?? '')?.[1];
+    try {
+      return await parseResponse<{ valid: true }>(response, { redirectOn401: false });
+    } catch (err) {
+      if (err instanceof ApiError && remaining !== undefined) err.remainingAttempts = Number(remaining);
+      throw err;
+    }
+  },
   forgotPassword: (body: unknown) =>
     fetch('/api/auth/forgot-password', json('POST', body)).then((r) =>
       parseResponse<{ message: string }>(r, { redirectOn401: false }),

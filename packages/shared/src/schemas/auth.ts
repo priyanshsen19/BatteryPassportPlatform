@@ -39,12 +39,21 @@ const passwordSchema = z
   .min(8, 'Password must be at least 8 characters')
   .max(128, 'Password must be at most 128 characters');
 
-/** Registration body from the assignment: `role` is optional and defaults to `user`. */
+/**
+ * Registration body from the assignment, plus an optional access code. A valid code creates an
+ * `admin`; otherwise the account is a `user` (`developer` and `tester` are assigned by admins).
+ */
 export const registerSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  /** Optional, as in the assignment's register body; defaults to `user`. */
-  role: z.enum(ROLES, { error: `Role must be one of: ${ROLES.join(', ')}` }).default('user'),
+  role: z.enum(ROLES, { error: `Role must be one of: ${ROLES.join(', ')}` }).optional(),
+  // Empty strings (an untouched form field) count as "no code".
+  accessCode: z
+    .string()
+    .trim()
+    .max(200, 'The access code is too long')
+    .optional()
+    .transform((value) => value || undefined),
 });
 
 export const loginSchema = z.object({
@@ -53,6 +62,11 @@ export const loginSchema = z.object({
 });
 
 export type RegisterInput = z.input<typeof registerSchema>;
+
+/** Body of POST /api/auth/access-code/verify, used by the sign-up page before registering. */
+export const verifyAccessCodeSchema = z.object({
+  accessCode: z.string().trim().min(1, 'Enter the access code').max(200, 'The access code is too long'),
+});
 export type LoginInput = z.infer<typeof loginSchema>;
 
 /** Body of POST /api/auth/forgot-password. */

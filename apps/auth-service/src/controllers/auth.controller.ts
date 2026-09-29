@@ -1,13 +1,23 @@
 import { Errors, listUsersQuerySchema, parseQuery, sendSuccess } from '@bpp/shared';
 import type { Request, Response } from 'express';
-import { authService } from '../services/auth.service';
+import { authService, isValidAccessCode } from '../services/auth.service';
 import { passwordResetService } from '../services/password-reset.service';
 import { userAdminService } from '../services/user-admin.service';
 
 export const authController = {
   async register(req: Request, res: Response): Promise<void> {
-    const user = await authService.register(req.body);
+    const { user, accessCodeRejected } = await authService.register(req.body);
+    // Read by the registration rate limiter, which counts wrong access codes.
+    res.locals.accessCodeRejected = accessCodeRejected;
     sendSuccess(res, { user }, 201);
+  },
+
+  /** Lets the sign-up page check an admin access code before creating the account. */
+  verifyAccessCode(req: Request, res: Response): void {
+    if (!isValidAccessCode(req.body.accessCode)) {
+      throw Errors.forbidden('The access code is not valid', 'INVALID_ACCESS_CODE');
+    }
+    sendSuccess(res, { valid: true });
   },
 
   async login(req: Request, res: Response): Promise<void> {

@@ -6,6 +6,7 @@
  * notifications and the password reset link (SMTP is not configured locally).
  */
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -15,6 +16,12 @@ const PASS = 'http://localhost:4002';
 const DOC = 'http://localhost:4003';
 const WEB = 'http://localhost:3000';
 const run = Date.now().toString(36);
+// A per-run visitor address keeps rate-limit counters from earlier runs out of this one.
+const CLIENT_IP = `198.18.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250) + 1}`;
+// The admin access code configured for the auth service (ADMIN_ACCESS_CODE in .env).
+const ACCESS_CODE =
+  process.env.ADMIN_ACCESS_CODE ??
+  /^ADMIN_ACCESS_CODE=(.+)$/m.exec(readFileSync(new URL('../.env', import.meta.url), 'utf8'))?.[1]?.trim();
 const results = [];
 let section = '';
 
@@ -27,7 +34,7 @@ function head(title) {
   console.log(`\n== ${title}`);
 }
 async function call(method, url, { token, body, form, headers = {} } = {}) {
-  const h = { ...headers };
+  const h = { 'x-client-ip': CLIENT_IP, ...headers };
   if (token) h.authorization = `Bearer ${token}`;
   let payload;
   if (form) payload = form;
@@ -102,24 +109,76 @@ check('notification-service /health is ok', nh.status === 200, nh.text);
 head('2. Auth: registration, login, JWT');
 const pw = 'Passw0rd!' + run;
 const acct = (r) => ({ email: `${r}-${run}@e2e.test`, password: pw });
-const reg = {};
-for (const role of ['admin', 'developer', 'tester', 'user']) {
+check('ADMIN_ACCESS_CODE is configured (in .env)', !!ACCESS_CODE);
+const verifyOk = await call('POST', `${AUTH}/api/auth/access-code/verify`, {
+  body: { accessCode: ACCESS_CODE },
+});
+check('correct access code verifies -> 200', verifyOk.status === 200, verifyOk.text);
+const verifyBad = await call('POST', `${AUTH}/api/auth/access-code/verify`, {
+  body: { accessCode: 'wrong' },
+});
+check(
+  'wrong access code -> 403 with attempts left',
+  verifyBad.status === 403 && /remaining=2/.test(verifyBad.headers.get('ratelimit') ?? ''),
+  verifyBad.text,
+);
+const regAdmin = await call('POST', `${AUTH}/api/auth/register`, {
+  body: { ...acct('admin'), role: 'admin', accessCode: ACCESS_CODE },
+});
+check(
+  'register with a valid access code -> admin',
+  regAdmin.status === 201 && regAdmin.body?.data?.user?.role === 'admin',
+  regAdmin.text,
+);
+check('password is never returned', !JSON.stringify(regAdmin.body).includes(pw));
+for (const role of ['developer', 'tester', 'user']) {
   const r = await call('POST', `${AUTH}/api/auth/register`, { body: { ...acct(role), role } });
-  reg[role] = r;
   check(
-    `register with role "${role}" -> 201 and role ${role}`,
-    r.status === 201 && r.body?.data?.user?.role === role,
+    `register asking for "${role}" -> 201 as user`,
+    r.status === 201 && r.body?.data?.user?.role === 'user',
     r.text,
   );
 }
+const wrongCode = await call('POST', `${AUTH}/api/auth/register`, {
+  body: { ...acct('wrongcode'), role: 'admin', accessCode: 'not-the-code' },
+});
+check(
+  'register with a wrong code -> user, not rejected',
+  wrongCode.body?.data?.user?.role === 'user',
+  wrongCode.text,
+);
+const blockedCode = await call('POST', `${AUTH}/api/auth/access-code/verify`, {
+  body: { accessCode: 'wrong-again' },
+});
+const blocked = await call('POST', `${AUTH}/api/auth/access-code/verify`, {
+  body: { accessCode: ACCESS_CODE },
+});
+check(
+  'after 3 wrong codes even the right one -> 429',
+  blockedCode.status === 403 && blocked.status === 429,
+  `${blockedCode.status} ${blocked.status}`,
+);
 const noRole = await call('POST', `${AUTH}/api/auth/register`, { body: acct('norole') });
 check(
   'register without role defaults to "user"',
   noRole.status === 201 && noRole.body?.data?.user?.role === 'user',
   noRole.text,
 );
-check('password is never returned', !JSON.stringify(reg.admin.body).includes(pw));
-const dup = await call('POST', `${AUTH}/api/auth/register`, { body: { ...acct('admin'), role: 'admin' } });
+
+// Developer and tester come from an admin, as on the User roles page.
+const adminLogin = await call('POST', `${AUTH}/api/auth/login`, { body: acct('admin') });
+const staff = await call('GET', `${AUTH}/api/auth/users?limit=100&q=${run}`, {
+  token: adminLogin.body?.data?.token,
+});
+for (const role of ['developer', 'tester']) {
+  const u = staff.body?.data?.items?.find((x) => x.email === acct(role).email);
+  const r = await call('PATCH', `${AUTH}/api/auth/users/${u?.id}/role`, {
+    token: adminLogin.body?.data?.token,
+    body: { role },
+  });
+  check(`admin assigns ${role}`, r.status === 200 && r.body?.data?.role === role, r.text);
+}
+const dup = await call('POST', `${AUTH}/api/auth/register`, { body: acct('admin') });
 check('duplicate email -> 409', dup.status === 409, dup.status);
 const badRole = await call('POST', `${AUTH}/api/auth/register`, {
   body: { ...acct('bad'), role: 'superuser' },
@@ -453,12 +512,54 @@ check(
 const proxiedDocs = await call('GET', `${WEB}/api/proxy/documents?limit=5`, { headers: { cookie: session } });
 check('web proxy lists documents with the session', proxiedDocs.status === 200, proxiedDocs.status);
 check('web proxy without session -> 401', (await call('GET', `${WEB}/api/proxy/passports`)).status === 401);
-const wr = await call('POST', `${WEB}/api/auth/register`, { body: { ...acct('webreg'), role: 'admin' } });
+const wr = await call('POST', `${WEB}/api/auth/register`, {
+  body: { ...acct('webreg'), role: 'admin' },
+  headers: { 'x-forwarded-for': CLIENT_IP },
+});
 check(
   'web sign-up ignores a role and creates "user"',
   wr.status === 201 && wr.body?.data?.user?.role === 'user',
   wr.text,
 );
+const webVisitor = { 'x-forwarded-for': `198.19.${Math.floor(Math.random() * 250)}.9` };
+const webBad = await call('POST', `${WEB}/api/auth/access-code`, {
+  body: { accessCode: 'wrong' },
+  headers: webVisitor,
+});
+check(
+  'web code check: wrong code -> 403 with attempts left',
+  webBad.status === 403 && /remaining=2/.test(webBad.headers.get('ratelimit') ?? ''),
+  webBad.text,
+);
+const webGood = await call('POST', `${WEB}/api/auth/access-code`, {
+  body: { accessCode: ACCESS_CODE },
+  headers: webVisitor,
+});
+check('web code check: right code -> 200', webGood.status === 200, webGood.text);
+const webAdmin = await call('POST', `${WEB}/api/auth/register`, {
+  body: { ...acct('webadmin'), accessCode: ACCESS_CODE },
+  headers: webVisitor,
+});
+check('web admin sign-up with the code -> admin', webAdmin.body?.data?.user?.role === 'admin', webAdmin.text);
+
+// ---------------------------------------------------------------------------
+head('9. Rate limits');
+const limited = { email: `limited-${run}@e2e.test`, password: 'WrongPassw0rd' };
+const statuses = [];
+for (let i = 0; i < 11; i += 1)
+  statuses.push((await call('POST', `${AUTH}/api/auth/login`, { body: limited })).status);
+check(
+  '10 failed logins for one email, then 429',
+  statuses.slice(0, 10).every((x) => x === 401) && statuses[10] === 429,
+  statuses.join(','),
+);
+const resets = [];
+for (let i = 0; i < 4; i += 1) {
+  resets.push(
+    (await call('POST', `${AUTH}/api/auth/forgot-password`, { body: { email: limited.email } })).status,
+  );
+}
+check('3 reset emails per address, then 429', resets.join(',') === '200,200,200,429', resets.join(','));
 
 // ---------------------------------------------------------------------------
 const failed = results.filter((r) => !r.ok);

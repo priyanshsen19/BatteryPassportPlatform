@@ -257,7 +257,8 @@ The BatteryPass web app demonstrates every backend capability:
 - **Documents:** upload with progress, in-app preview for PDFs and images, rename, download and
   delete.
 - **User roles:** admins see every user and change their roles.
-- **Account:** sign-up, sign-in, Google sign-in and password reset.
+- **Account:** sign-up as user or admin (with an access code), sign-in, Google sign-in and
+  password reset.
 - **Command bar:** ⌘K / Ctrl+K searches passports and jumps to any page or action.
 - **Light and dark themes**, following the system setting by default.
 
@@ -285,6 +286,9 @@ one is missing or invalid.
 - `PUBLIC_APP_URL`: web app URL, used in password reset links.
 - `PASSWORD_RESET_TTL_MINUTES`: reset link lifetime (default 30).
 - `GOOGLE_CLIENT_ID`: optional; Google sign-in is off when empty.
+- `ADMIN_ACCESS_CODE`: optional, at least 8 characters; sign-ups with this code become admins.
+- `RATE_LIMIT_WINDOW_MINUTES`, `LOGIN_MAX_FAILED_ATTEMPTS`, `PASSWORD_RESET_MAX_REQUESTS`,
+  `ACCESS_CODE_MAX_FAILED_ATTEMPTS`: rate limits (defaults 15, 10, 3 and 3).
 
 **Databases**
 
@@ -397,18 +401,20 @@ Validation failures (`422 VALIDATION_ERROR`) include `details: [{ "field", "mess
 
 ### Auth service (`:4001`)
 
-| Method | Path                        | Access  | Body → result                          |
-| ------ | --------------------------- | ------- | -------------------------------------- |
-| POST   | `/api/auth/register`        | public  | `{ email, password, role? }` → user    |
-| POST   | `/api/auth/login`           | public  | `{ email, password }` → JWT            |
-| POST   | `/api/auth/google`          | public  | `{ idToken }` → JWT                    |
-| POST   | `/api/auth/forgot-password` | public  | `{ email }` → emails a reset link      |
-| POST   | `/api/auth/reset-password`  | public  | `{ token, password }` → new password   |
-| GET    | `/api/auth/me`              | any JWT | current user (used by other services)  |
-| GET    | `/api/auth/users`           | admin   | users with roles (`q`, `role` filters) |
-| PATCH  | `/api/auth/users/:id/role`  | admin   | `{ role }` → updated user              |
+| Method | Path                           | Access  | Body → result                          |
+| ------ | ------------------------------ | ------- | -------------------------------------- |
+| POST   | `/api/auth/register`           | public  | `{ email, password, accessCode? }`     |
+| POST   | `/api/auth/access-code/verify` | public  | `{ accessCode }` → valid or 403        |
+| POST   | `/api/auth/login`              | public  | `{ email, password }` → JWT            |
+| POST   | `/api/auth/google`             | public  | `{ idToken }` → JWT                    |
+| POST   | `/api/auth/forgot-password`    | public  | `{ email }` → emails a reset link      |
+| POST   | `/api/auth/reset-password`     | public  | `{ token, password }` → new password   |
+| GET    | `/api/auth/me`                 | any JWT | current user (used by other services)  |
+| GET    | `/api/auth/users`              | admin   | users with roles (`q`, `role` filters) |
+| PATCH  | `/api/auth/users/:id/role`     | admin   | `{ role }` → updated user              |
 
-- `role` is optional at registration and defaults to `user`.
+- Registration creates an `admin` with a valid access code, otherwise a `user` (a wrong code is
+  not an error). The assignment's `role` field is accepted but grants nothing on its own.
 - Forgot-password gives the same response whether or not the email is registered.
 - A password reset signs out every existing session of that user.
 - Admins cannot change their own role.
@@ -525,15 +531,37 @@ curl -s localhost:4003/api/documents/<docId> -H "authorization: Bearer $TOKEN"
   | Delete passports and documents                 |   ✓   |           |        |      |
   | Manage user roles (User roles page)            |   ✓   |           |        |      |
 
-- **Registration follows the assignment:** `POST /api/auth/register` accepts an optional `role`
-  (`admin`, `developer`, `tester` or `user`; default `user`). The web sign-up form and Google
-  sign-in always create a `user`.
+- **Registration** creates a `user`, or an `admin` when a valid admin access code
+  (`ADMIN_ACCESS_CODE`, shared by the platform owner) is sent. On the sign-up page, choosing
+  **Admin** shows an access-code field; the code is checked first
+  (`POST /api/auth/access-code/verify`), so a wrong code shows a warning with the attempts left and
+  creates nothing. Through the API, a missing or wrong code simply creates a `user`. The
+  assignment's `role` field is accepted but grants nothing on its own, and Google sign-in always
+  creates a `user`.
+- **Developer and tester** are assigned only by admins.
 - **Role changes** are made by admins on the **User roles** page (`PATCH /api/auth/users/:id/role`)
   and apply on the user's next request, because every token is re-checked against the stored role.
   Admins cannot change their own role, so there is always at least one admin.
 - **The first admin** comes from configuration: at start-up the auth service creates the
   `BOOTSTRAP_ADMIN_EMAIL` account with `BOOTSTRAP_ADMIN_PASSWORD`, or promotes the account if it
   already exists (its password is never changed).
+
+### Rate limiting
+
+Counters live in the auth service's memory and use a 15-minute window
+(`RATE_LIMIT_WINDOW_MINUTES`). A blocked request gets `429 TOO_MANY_REQUESTS` with
+"try again in N minutes" and a `Retry-After` header.
+
+| What                     | Limit               | Counted per |
+| ------------------------ | ------------------- | ----------- |
+| Failed logins            | 10                  | email       |
+| Password reset emails    | 3                   | email       |
+| Failed password resets   | 10                  | visitor     |
+| Wrong admin access codes | 3 (30 for everyone) | visitor     |
+
+Every request from the web app reaches the auth service from the web server, so account limits
+are keyed by email, and the web app forwards the visitor's address for the others. The cap across
+all visitors keeps the access code from being guessed from many addresses.
 
 ### Password reset
 
@@ -742,8 +770,11 @@ shared package from the monorepo root.
 - **PUT semantics.** `PUT /api/passports/:id` takes the same full body as create and replaces the
   passport data.
 - **Roles beyond the assignment.** The assignment names `admin` and `user`; `developer` and
-  `tester` were added for finer access. For `admin` and `user`, access matches the assignment:
-  admins write, users read.
+  `tester` were added for finer access and are only assigned by admins. For `admin` and `user`,
+  access matches the assignment: admins write, users read.
+- **Admin sign-up.** The assignment's register body lets a client choose its role, which would
+  let anyone become an admin. Here admin sign-up needs an access code instead, compared in
+  constant time and rate limited.
 - **Event delivery.** Events are published after the database write. A broker failure is logged
   with the full event context but does not roll back the change; a transactional outbox would
   guarantee delivery in production.

@@ -1,6 +1,12 @@
 import type { ApiResponse, LoginResult } from '@bpp/shared/schemas';
 import { NextResponse, type NextRequest } from 'next/server';
-import { callService, requiredEnv, setSessionCookie, withJsonErrors } from '@/lib/server/session';
+import {
+  callService,
+  clientIpHeader,
+  requiredEnv,
+  setSessionCookie,
+  withJsonErrors,
+} from '@/lib/server/session';
 
 // Leaves time to wait for a sleeping backend service to wake up (see callService).
 export const maxDuration = 60;
@@ -8,13 +14,18 @@ export const maxDuration = 60;
 /** Registers the account, then signs it in so the user lands directly in the app. */
 async function handlePOST(request: NextRequest) {
   const authUrl = requiredEnv('AUTH_SERVICE_URL');
-  // Sign-ups from the web app always get the default `user` role; admins grant more access.
-  const { email, password } = (await request.json()) as { email: string; password: string };
+  // Only these fields are forwarded: an account is `admin` with a valid access code, otherwise
+  // `user` (developer and tester are assigned by admins).
+  const { email, password, accessCode } = (await request.json()) as {
+    email: string;
+    password: string;
+    accessCode?: string;
+  };
 
   const registered = await callService(`${authUrl}/api/auth/register`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    headers: { 'content-type': 'application/json', ...clientIpHeader(request) },
+    body: JSON.stringify({ email, password, accessCode }),
   });
   if (registered instanceof NextResponse) return registered;
   if (!registered.ok) return NextResponse.json(await registered.json(), { status: registered.status });

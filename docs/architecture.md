@@ -132,6 +132,11 @@ in the URL, and the ⌘K command bar reuses the same search endpoint.
   an expiry (30 minutes by default); the plain token exists only in the emailed link. Consuming
   the token is a single atomic update, so a link works once. A reset records
   `passwordChangedAt`, and tokens issued before it are rejected, which signs out every session.
+- **Admin sign-up.** An account becomes `admin` at sign-up only with the access code configured
+  on the auth service (`ADMIN_ACCESS_CODE`), compared as SHA-256 digests in constant time. Other
+  roles come from admins; the assignment's `role` field grants nothing on its own.
+- **Rate limiting.** The auth service limits failed logins and reset emails per email address, and
+  wrong access codes and failed resets per visitor, with a cap on wrong codes across all visitors.
 - **Google sign-in.** The web server runs the OAuth authorization-code flow with PKCE; the auth
   service verifies Google's ID token and issues the platform's own JWT, so the other services see
   no difference.

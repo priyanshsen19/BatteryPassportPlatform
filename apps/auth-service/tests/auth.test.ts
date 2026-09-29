@@ -8,10 +8,11 @@ import { UserModel } from '../src/models/user.model';
 const app = createApp();
 let mongod: MongoMemoryServer;
 
-const admin = { email: 'admin@example.com', password: 'AdminPassw0rd', role: 'admin' };
-const user = { email: 'user@example.com', password: 'UserPassw0rd', role: 'user' };
+const ACCESS_CODE = 'test-access-code-2026';
+const admin = { email: 'admin@example.com', password: 'AdminPassw0rd', accessCode: ACCESS_CODE };
+const user = { email: 'user@example.com', password: 'UserPassw0rd' };
 
-async function registerAndLogin(account: typeof admin): Promise<string> {
+async function registerAndLogin(account: { email: string; password: string }): Promise<string> {
   await request(app).post('/api/auth/register').send(account);
   const res = await request(app)
     .post('/api/auth/login')
@@ -63,12 +64,48 @@ describe('POST /api/auth/register', () => {
     expect(res.body).toMatchObject({ success: false, error: { code: 'EMAIL_ALREADY_REGISTERED' } });
   });
 
-  it('registers with the requested role', async () => {
+  it('registers an admin with a valid access code', async () => {
     const res = await request(app).post('/api/auth/register').send(admin);
 
     expect(res.status).toBe(201);
     expect(res.body.data.user.role).toBe('admin');
     expect((await UserModel.findOne({ email: admin.email }))?.role).toBe('admin');
+  });
+
+  it('never grants developer or tester at registration, even with a valid code', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ ...user, role: 'tester', accessCode: ACCESS_CODE });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.user.role).toBe('admin');
+  });
+
+  it.each(['admin', 'developer', 'tester'])('ignores role %s without an access code', async (role) => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ ...user, role });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.user.role).toBe('user');
+  });
+
+  it('creates a user when the access code is wrong', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ ...user, role: 'admin', accessCode: 'not-the-right-code' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.user.role).toBe('user');
+  });
+
+  it('treats an empty access code as none', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ ...user, accessCode: '  ' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.user.role).toBe('user');
   });
 
   it('defaults to the user role when none is given', async () => {
@@ -108,6 +145,29 @@ describe('POST /api/auth/register', () => {
       .send('{"email":');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('MALFORMED_JSON');
+  });
+});
+
+describe('POST /api/auth/access-code/verify', () => {
+  const verify = (accessCode: string) =>
+    request(app).post('/api/auth/access-code/verify').send({ accessCode });
+
+  it('accepts the configured code', async () => {
+    const res = await verify(ACCESS_CODE);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({ valid: true });
+  });
+
+  it('rejects a wrong code with 403 and creates nothing', async () => {
+    const res = await verify('wrong-code');
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('INVALID_ACCESS_CODE');
+    expect(await UserModel.countDocuments()).toBe(0);
+  });
+
+  it('requires a code', async () => {
+    const res = await request(app).post('/api/auth/access-code/verify').send({});
+    expect(res.status).toBe(422);
   });
 });
 

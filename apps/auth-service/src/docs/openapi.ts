@@ -36,7 +36,7 @@ export const openApiSpec = {
         tags: ['Auth'],
         summary: 'Register a user',
         description:
-          'Public. `role` is optional (`admin`, `developer`, `tester` or `user`) and defaults to `user`. Admins can change roles later with `PATCH /api/auth/users/{id}/role`.',
+          'Public. A valid `accessCode` (the `ADMIN_ACCESS_CODE` configured on the auth service) creates an `admin`; otherwise the account is a `user`, including when the code is wrong. `role` is accepted for compatibility but grants nothing on its own: `developer` and `tester` are assigned by admins with `PATCH /api/auth/users/{id}/role`. Wrong codes count towards the same limit as `/api/auth/access-code/verify`.',
         security: [],
         requestBody: {
           required: true,
@@ -48,10 +48,11 @@ export const openApiSpec = {
                 properties: {
                   email: { type: 'string', format: 'email' },
                   password: { type: 'string', minLength: 8, maxLength: 128 },
-                  role: { type: 'string', enum: ['admin', 'developer', 'tester', 'user'], default: 'user' },
+                  role: { type: 'string', enum: ['admin', 'developer', 'tester', 'user'] },
+                  accessCode: { type: 'string', description: 'Optional admin access code' },
                 },
               },
-              example: { email: 'new.user@example.com', password: 'Str0ngPassw0rd', role: 'user' },
+              example: { email: 'new.admin@example.com', password: 'Str0ngPassw0rd', accessCode: '<code>' },
             },
           },
         },
@@ -69,7 +70,49 @@ export const openApiSpec = {
               },
             },
           ),
-          ...errorResponses(400, 409, 422),
+          ...errorResponses(400, 409, 422, 429),
+        },
+      },
+    },
+    '/api/auth/access-code/verify': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Check an admin access code',
+        description:
+          'Public. Used by the sign-up page before creating an admin account. Three wrong codes per client (and 30 across all clients) within 15 minutes return `429`; the `RateLimit` header reports the attempts left.',
+        security: [],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['accessCode'],
+                properties: { accessCode: { type: 'string' } },
+              },
+              example: { accessCode: '<code>' },
+            },
+          },
+        },
+        responses: {
+          200: successResponse(
+            'The code is valid',
+            { type: 'object', properties: { valid: { type: 'boolean' } } },
+            { valid: true },
+          ),
+          403: {
+            description: 'Wrong code (INVALID_ACCESS_CODE)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+                example: {
+                  success: false,
+                  error: { code: 'INVALID_ACCESS_CODE', message: 'The access code is not valid' },
+                },
+              },
+            },
+          },
+          ...errorResponses(422, 429),
         },
       },
     },
@@ -77,6 +120,8 @@ export const openApiSpec = {
       post: {
         tags: ['Auth'],
         summary: 'Log in and obtain a JWT',
+        description:
+          'Public. Ten failed logins for one email within 15 minutes return `429` until the window ends.',
         security: [],
         requestBody: {
           required: true,
@@ -110,7 +155,7 @@ export const openApiSpec = {
               user: { id: '6700f1c2a7d4e5f601234567', email: 'admin@example.com', role: 'admin' },
             },
           ),
-          ...errorResponses(400, 401, 422),
+          ...errorResponses(400, 401, 422, 429),
         },
       },
     },
@@ -140,7 +185,7 @@ export const openApiSpec = {
             { type: 'object', properties: { message: { type: 'string' } } },
             { message: 'If an account exists for this email, a password reset link has been sent.' },
           ),
-          ...errorResponses(400, 422),
+          ...errorResponses(400, 422, 429),
         },
       },
     },
@@ -173,7 +218,7 @@ export const openApiSpec = {
             { type: 'object', properties: { message: { type: 'string' } } },
             { message: 'Your password has been updated. Sign in with your new password.' },
           ),
-          ...errorResponses(400, 422),
+          ...errorResponses(400, 422, 429),
         },
       },
     },

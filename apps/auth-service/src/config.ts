@@ -22,6 +22,17 @@ const envSchema = commonEnvSchema.extend({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string().default('BatteryPass <no-reply@battery-passport.local>'),
+  // Optional: a code that lets a new account register as admin (or another privileged role).
+  ADMIN_ACCESS_CODE: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => !value || value.length >= 8, 'ADMIN_ACCESS_CODE must be at least 8 characters'),
+  // Abuse protection for the public account endpoints.
+  RATE_LIMIT_WINDOW_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
+  LOGIN_MAX_FAILED_ATTEMPTS: z.coerce.number().int().min(1).default(10),
+  PASSWORD_RESET_MAX_REQUESTS: z.coerce.number().int().min(1).default(3),
+  ACCESS_CODE_MAX_FAILED_ATTEMPTS: z.coerce.number().int().min(1).default(3),
 });
 
 const env = loadEnv(envSchema);
@@ -49,6 +60,13 @@ export const config = {
   bootstrapAdmin: {
     email: env.BOOTSTRAP_ADMIN_EMAIL || undefined,
     password: env.BOOTSTRAP_ADMIN_PASSWORD || undefined,
+  },
+  adminAccessCode: env.ADMIN_ACCESS_CODE || undefined,
+  rateLimit: {
+    windowMinutes: env.RATE_LIMIT_WINDOW_MINUTES,
+    loginMaxFailedAttempts: env.LOGIN_MAX_FAILED_ATTEMPTS,
+    passwordResetMaxRequests: env.PASSWORD_RESET_MAX_REQUESTS,
+    accessCodeMaxFailedAttempts: env.ACCESS_CODE_MAX_FAILED_ATTEMPTS,
   },
   passwordReset: {
     appUrl: normalizeAppUrl(env.PUBLIC_APP_URL),

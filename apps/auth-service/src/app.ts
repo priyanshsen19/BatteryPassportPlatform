@@ -2,7 +2,7 @@ import { createServiceApp, finalizeServiceApp, isMongoConnected } from '@bpp/sha
 import type { Express } from 'express';
 import { config, logger } from './config';
 import { openApiSpec } from './docs/openapi';
-import { authRouter } from './routes/auth.routes';
+import { createAuthRouter } from './routes/auth.routes';
 
 export function createApp(): Express {
   const app = createServiceApp({
@@ -13,7 +13,7 @@ export function createApp(): Express {
     healthChecks: () => ({ mongodb: isMongoConnected() ? 'up' : 'down' }),
   });
 
-  app.use('/api/auth', authRouter);
+  app.use('/api/auth', createAuthRouter());
 
   return finalizeServiceApp(app, logger, !config.isProduction);
 }
