@@ -1,4 +1,5 @@
-# Render Blueprint: deploys the four services and the web app as Docker web services.
+# Render Blueprint: deploys the four backend services as Docker web services. The web app is
+# deployed to Vercel (see README → Deploying the web app to Vercel), where it does not sleep.
 # MongoDB (Atlas), S3 (AWS) and Kafka (a hosted provider) are external; their settings are
 # marked `sync: false`, so Render asks for them when the Blueprint is first applied.
 #
@@ -140,28 +141,4 @@ services:
       - key: SMTP_PASSWORD
         sync: false # optional
       - key: NOTIFICATION_EMAIL_TO
-        sync: false # optional
-
-  - type: web
-    name: bpp-web
-    runtime: docker
-    region: frankfurt
-    plan: free
-    dockerfilePath: ./apps/web/Dockerfile
-    dockerContext: .
-    healthCheckPath: /login
-    envVars:
-      - key: AUTH_SERVICE_URL
-        sync: false # https://bpp-auth-service.onrender.com
-      - key: PASSPORT_SERVICE_URL
-        sync: false # https://bpp-passport-service.onrender.com
-      - key: DOCUMENT_SERVICE_URL
-        sync: false # https://bpp-document-service.onrender.com
-      - key: PUBLIC_APP_URL
-        sync: false # https://bpp-web.onrender.com
-      - key: SESSION_COOKIE_SECURE
-        value: 'true'
-      - key: GOOGLE_CLIENT_ID
-        sync: false # optional
-      - key: GOOGLE_CLIENT_SECRET
         sync: false # optional

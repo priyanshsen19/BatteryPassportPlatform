@@ -1,37 +1,26 @@
-# Keeps the Render free-plan services awake during a daily window by calling them every
-# 10 minutes (Render puts free services to sleep after 15 minutes without traffic).
+# Wakes every Render backend service on demand (Actions → Keep alive → Run workflow), e.g. just
+# before a demo. Day to day this is not needed: the web app, on Vercel, pings the backends
+# whenever someone opens a page, and waits for them while they start.
 #
-# Budget: free instance hours are shared by the whole Render workspace (750 per month), which is
-# enough for one service around the clock. Four services (web, auth, passport, document) awake on
-# weekdays 04:00–12:00 UTC (09:30–17:30 IST) use about 4 × 8 h × 22 days ≈ 704 h plus ~22 h of
-# idle tail, leaving roughly 25 h for visits outside the window. The notification service is left
-# out: when it wakes it consumes the Kafka events it missed, so no notification is lost.
-# Widening the window or adding services exceeds the budget, after which Render suspends every
-# free service until the next month.
-#
-# Disable with the repository variable KEEP_ALIVE=false (Settings → Secrets and variables →
-# Actions → Variables). "Run workflow" in the Actions tab wakes every service once, any time.
+# There is deliberately no schedule: free instance hours are shared by the whole Render workspace
+# (750 per month), which only covers one service around the clock.
 name: Keep alive
 
 on:
-  schedule:
-    - cron: '*/10 4-11 * * 1-5'
   workflow_dispatch:
 
 permissions: {}
 
 jobs:
   ping:
-    if: github.event_name == 'workflow_dispatch' || vars.KEEP_ALIVE != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       URLS: >-
-        https://bpp-web.onrender.com/login
-        https://bpp-auth-service.onrender.com/health
+        ${{ vars.KEEP_ALIVE_URLS || 'https://bpp-auth-service.onrender.com/health
         https://bpp-passport-service.onrender.com/health
         https://bpp-document-service.onrender.com/health
-        ${{ github.event_name == 'workflow_dispatch' && 'https://bpp-notification-service.onrender.com/health' || '' }}
+        https://bpp-notification-service.onrender.com/health' }}
     steps:
       - name: Ping services
         run: |

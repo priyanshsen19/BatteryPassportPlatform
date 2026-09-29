@@ -71,7 +71,8 @@ export function withJsonErrors<Args extends unknown[]>(
   };
 }
 
-const WAKE_UP_WINDOW_MS = 75_000;
+// Fits inside the routes' 60 s maxDuration (the limit on every Vercel plan).
+const WAKE_UP_WINDOW_MS = 50_000;
 const WAKE_UP_RETRY_MS = 2_500;
 
 /**
@@ -91,7 +92,7 @@ function isPlatformWakeUpResponse(response: Response): boolean {
 export async function callService(
   url: string,
   init: RequestInit,
-  timeoutMs = 60000,
+  timeoutMs = 55_000,
 ): Promise<Response | NextResponse<ApiFailure>> {
   const deadline = Date.now() + WAKE_UP_WINDOW_MS;
   for (let attempt = 1; ; attempt += 1) {
@@ -115,13 +116,31 @@ export async function callService(
   }
 }
 
-/** Fire-and-forget request that makes sleeping services start booting before they are needed. */
-export function wakeServices(): void {
-  for (const name of ['AUTH_SERVICE_URL', 'PASSPORT_SERVICE_URL', 'DOCUMENT_SERVICE_URL'] as const) {
-    const base = process.env[name]?.trim().replace(/\/+$/, '');
-    if (!base) continue;
-    fetch(`${base}/health`, { cache: 'no-store', signal: AbortSignal.timeout(90_000) })
-      .then((r) => r.body?.cancel())
-      .catch(() => undefined);
-  }
+const WAKE_SERVICE_URLS = [
+  'AUTH_SERVICE_URL',
+  'PASSPORT_SERVICE_URL',
+  'DOCUMENT_SERVICE_URL',
+  // Optional: only used to wake the Kafka consumer so notifications are processed promptly.
+  'NOTIFICATION_SERVICE_URL',
+] as const;
+const WAKE_INTERVAL_MS = 60_000;
+let lastWake = 0;
+
+/**
+ * Sends one request to each backend's /health so services that sleep when idle start booting
+ * before they are needed. At most once a minute per server instance. The returned promise settles
+ * once every service has received the request (not when it has finished starting).
+ */
+export async function wakeServices(): Promise<void> {
+  if (Date.now() - lastWake < WAKE_INTERVAL_MS) return;
+  lastWake = Date.now();
+  await Promise.allSettled(
+    WAKE_SERVICE_URLS.map((name) => process.env[name]?.trim().replace(/\/+$/, ''))
+      .filter((base): base is string => Boolean(base))
+      .map((base) =>
+        fetch(`${base}/health`, { cache: 'no-store', signal: AbortSignal.timeout(10_000) }).then((r) =>
+          r.body?.cancel(),
+        ),
+      ),
+  );
 }

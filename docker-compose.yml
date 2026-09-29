@@ -197,6 +197,7 @@ services:
       AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://auth-service:4001}
       PASSPORT_SERVICE_URL: ${PASSPORT_SERVICE_URL:-http://passport-service:4002}
       DOCUMENT_SERVICE_URL: ${DOCUMENT_SERVICE_URL:-http://document-service:4003}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:4004}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:3000}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}

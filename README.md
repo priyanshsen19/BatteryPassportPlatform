@@ -232,6 +232,7 @@ one is missing or invalid.
 | `AUTH_SERVICE_URL`                                                                                          | passport, document, web               | Internal auth service URL                                                                         |
 | `PASSPORT_SERVICE_URL`                                                                                      | document, web                         | Internal passport service URL                                                                     |
 | `DOCUMENT_SERVICE_URL`                                                                                      | web                                   | Internal document service URL                                                                     |
+| `NOTIFICATION_SERVICE_URL`                                                                                  | web                                   | Optional; pinged on each visit so a sleeping notification service wakes up                        |
 | `SESSION_COOKIE_SECURE`                                                                                     | web                                   | `true` when served over HTTPS                                                                     |
 | `GOOGLE_CLIENT_ID`                                                                                          | auth, web                             | Optional Google OAuth client id; Google sign-in is off when empty                                 |
 | `GOOGLE_CLIENT_SECRET`                                                                                      | web                                   | Optional Google OAuth client secret                                                               |
@@ -535,7 +536,7 @@ setup:
 | Component                                       | Suggested host                                                                                             |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | auth, passport, document, notification services | Render (Docker web services) or another container platform                                                 |
-| web                                             | Render or Vercel (`apps/web`, Next.js standalone output)                                                   |
+| web                                             | Vercel (`apps/web`); the Docker image also runs on any container host                                      |
 | MongoDB                                         | MongoDB Atlas, one database per service                                                                    |
 | Object storage                                  | AWS S3 (see above)                                                                                         |
 | Kafka                                           | A hosted Kafka-compatible provider; set `KAFKA_BROKERS`, `KAFKA_SSL=true` and the `KAFKA_SASL_*` variables |
@@ -546,15 +547,16 @@ Points to consider:
   `SESSION_COOKIE_SECURE=true`.
 - Point `AUTH_SERVICE_URL`, `PASSPORT_SERVICE_URL` and `DOCUMENT_SERVICE_URL` at the internal or
   public URLs of the deployed services.
-- The notification service must run continuously to consume events; on platforms that put idle
-  web services to sleep, use an always-on instance or a background worker.
+- The notification service consumes events only while running; on platforms that put idle web
+  services to sleep it catches up after waking, or use an always-on instance or background worker.
 - Local Docker Compose does not depend on any of this deployment configuration.
 
-### Deploying to Render
+### Deploying the backend services to Render
 
-[`render.yaml`](render.yaml) is a Render Blueprint that creates all five services (`bpp-auth-service`,
-`bpp-passport-service`, `bpp-document-service`, `bpp-notification-service`, `bpp-web`) as Docker
-web services built from this repository, with health checks and a generated `JWT_SECRET`.
+[`render.yaml`](render.yaml) is a Render Blueprint that creates the four backend services
+(`bpp-auth-service`, `bpp-passport-service`, `bpp-document-service`, `bpp-notification-service`)
+as Docker web services built from this repository, with health checks and a generated
+`JWT_SECRET`. The web app runs on Vercel (next section).
 
 1. **Prepare the external services:**
    - a MongoDB Atlas cluster, with a URI for each of `auth_db`, `passport_db` and `document_db`
@@ -566,40 +568,62 @@ web services built from this repository, with health checks and a generated `JWT
 3. **Connect the services:** once Render shows each service's URL (normally
    `https://<service-name>.onrender.com`), set:
 
-   | Service                  | Variable               | Value                         |
-   | ------------------------ | ---------------------- | ----------------------------- |
-   | passport, document, web  | `AUTH_SERVICE_URL`     | URL of `bpp-auth-service`     |
-   | document, web            | `PASSPORT_SERVICE_URL` | URL of `bpp-passport-service` |
-   | web                      | `DOCUMENT_SERVICE_URL` | URL of `bpp-document-service` |
-   | web                      | `PUBLIC_APP_URL`       | URL of `bpp-web`              |
-   | auth, passport, document | `CORS_ORIGINS`         | URL of `bpp-web`              |
+   | Service                  | Variable               | Value                            |
+   | ------------------------ | ---------------------- | -------------------------------- |
+   | passport, document       | `AUTH_SERVICE_URL`     | URL of `bpp-auth-service`        |
+   | document                 | `PASSPORT_SERVICE_URL` | URL of `bpp-passport-service`    |
+   | auth                     | `PUBLIC_APP_URL`       | URL of the web app (reset links) |
+   | auth, passport, document | `CORS_ORIGINS`         | URL of the web app               |
 
-4. **Redeploy** the affected services. Sign in with the `BOOTSTRAP_ADMIN_EMAIL` /
-   `BOOTSTRAP_ADMIN_PASSWORD` you gave `bpp-auth-service`; everyone else registers as a `user` and
-   gets other roles from you on the **User roles** page.
+4. **Redeploy** the affected services.
+
+### Deploying the web app to Vercel
+
+The web app is a standard Next.js app in `apps/web`; [`apps/web/vercel.json`](apps/web/vercel.json)
+installs and builds it together with the shared package from the monorepo root.
+
+1. In Vercel choose **Add New → Project** and import this repository.
+2. Set **Root Directory** to `apps/web` (the framework is detected as Next.js; keep the default
+   that includes files outside the root directory).
+3. Add the environment variables:
+
+   | Variable                                   | Value                                                      |
+   | ------------------------------------------ | ---------------------------------------------------------- |
+   | `AUTH_SERVICE_URL`                         | `https://bpp-auth-service.onrender.com`                    |
+   | `PASSPORT_SERVICE_URL`                     | `https://bpp-passport-service.onrender.com`                |
+   | `DOCUMENT_SERVICE_URL`                     | `https://bpp-document-service.onrender.com`                |
+   | `NOTIFICATION_SERVICE_URL`                 | `https://bpp-notification-service.onrender.com` (optional) |
+   | `PUBLIC_APP_URL`                           | the Vercel URL, e.g. `https://<project>.vercel.app`        |
+   | `SESSION_COOKIE_SECURE`                    | `true`                                                     |
+   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | optional, for Google sign-in                               |
+   | `ENABLE_EXPERIMENTAL_COREPACK`             | `1` (uses the pnpm version pinned in `package.json`)       |
+
+4. **Deploy**, then point the backends at the new URL: `PUBLIC_APP_URL` on `bpp-auth-service` and
+   `CORS_ORIGINS` on auth, passport and document. For Google sign-in, add
+   `https://<Vercel URL>/api/auth/google/callback` as an authorized redirect URI.
+
+Sign in with the `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` you gave
+`bpp-auth-service`; web sign-ups start as `user` and get other roles on the **User roles** page.
 
 Notes:
 
-- The Blueprint uses the free instance type. Free instances sleep after inactivity (the first
-  request then takes a while) and the notification service stops consuming while asleep; choose a
-  paid instance type for it if notifications must be continuous.
-- Services talk to each other over their public HTTPS URLs, which works on every plan.
-- **Sleeping services.** While a free instance wakes up, Render answers with an HTML 502 page. The
-  web app recognises this (the services always answer with JSON), waits up to about a minute and
-  retries, and it starts waking all services as soon as the sign-in page opens, so visitors see a
-  slower first load instead of an error.
-- **Keep-alive.** [`.github/workflows/keep-alive.yml`](.github/workflows/keep-alive.yml) keeps
-  web, auth, passport and document awake on weekdays 09:30–17:30 IST (04:00–12:00 UTC) by calling
-  them every 10 minutes. Free instance hours are shared by the workspace (750 a month, enough for
-  one service around the clock), and this window uses about 730 of them; outside it, the first
-  visit waits for a cold start. Set the repository variable `KEEP_ALIVE=false` to stop it, run it
-  from the Actions tab to wake everything at any time, or use paid instances for permanent uptime.
+- **Always-on front end, backends on demand.** Vercel does not put the web app to sleep. The
+  Render backends use the free instance type and sleep after 15 minutes without traffic. Every page
+  of the web app pings them (at most once a minute), and while a service is starting, Render
+  answers with an HTML 502 page that the web app recognises (the services always answer with
+  JSON): it waits and retries for up to 50 seconds instead of showing an error. Free instance hours
+  (750 a month per workspace) are therefore only used while people are using the platform.
+- The notification service consumes Kafka only while awake; after waking it processes the events
+  it missed from its committed offset. Use a paid instance type for it if notifications must be
+  immediate.
+- [`.github/workflows/keep-alive.yml`](.github/workflows/keep-alive.yml) wakes every backend on
+  demand (**Actions → Keep alive → Run workflow**), e.g. just before a demo.
 - Render re-applies fixed `value:` entries from `render.yaml` on every Blueprint sync. Settings
   that depend on your accounts (`AWS_REGION`, `KAFKA_SSL`, `KAFKA_SASL_MECHANISM`, …) are therefore
   `sync: false`, so values edited in the dashboard are kept. `AWS_REGION` must be the bucket's
   region; if it is not, the document service stops at startup and logs the region to use.
-- For Google sign-in, add `https://<bpp-web URL>/api/auth/google/callback` as an authorized
-  redirect URI and set `GOOGLE_CLIENT_ID` (auth, web) and `GOOGLE_CLIENT_SECRET` (web).
+- The Docker image in `apps/web/Dockerfile` still works for any container host (it is what Docker
+  Compose uses locally).
 
 ## Design notes
 

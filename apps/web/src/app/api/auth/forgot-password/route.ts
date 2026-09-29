@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { callService, requiredEnv, withJsonErrors } from '@/lib/server/session';
 
+// Leaves time to wait for a sleeping backend service to wake up (see callService).
+export const maxDuration = 60;
+
 /** Asks the auth service to email a reset link; the response never reveals whether the account exists. */
 async function handlePOST(request: NextRequest) {
   const { email } = (await request.json()) as { email: string };

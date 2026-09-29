@@ -8,16 +8,17 @@ Three ways to check the platform, from quickest to most thorough:
 3. [API walkthrough with curl](#3-api-walkthrough-with-curl): call every endpoint from the
    assignment by hand, locally or on the hosted deployment.
 
-The hosted services run on Render's free plan and sleep when idle: the first request after a quiet
-period can take up to a minute. Open each `/health` URL once to wake them up.
+The hosted web app runs on Vercel and is always up. The backend services run on Render's free plan
+and sleep when idle: opening the web app wakes them, and the first page can take up to a minute to
+load. When calling the APIs directly, open each `/health` URL once first.
 
-| Service      | Local                 | Hosted                                        |
-| ------------ | --------------------- | --------------------------------------------- |
-| Web app      | http://localhost:3000 | https://bpp-web.onrender.com                  |
-| Auth         | http://localhost:4001 | https://bpp-auth-service.onrender.com         |
-| Passport     | http://localhost:4002 | https://bpp-passport-service.onrender.com     |
-| Document     | http://localhost:4003 | https://bpp-document-service.onrender.com     |
-| Notification | http://localhost:4004 | https://bpp-notification-service.onrender.com |
+| Service      | Local                 | Hosted                                              |
+| ------------ | --------------------- | --------------------------------------------------- |
+| Web app      | http://localhost:3000 | your Vercel URL (e.g. https://<project>.vercel.app) |
+| Auth         | http://localhost:4001 | https://bpp-auth-service.onrender.com               |
+| Passport     | http://localhost:4002 | https://bpp-passport-service.onrender.com           |
+| Document     | http://localhost:4003 | https://bpp-document-service.onrender.com           |
+| Notification | http://localhost:4004 | https://bpp-notification-service.onrender.com       |
 
 Each API service serves Swagger UI at `/docs`: click **Authorize**, paste a JWT from login, and use
 **Try it out** as an alternative to curl.

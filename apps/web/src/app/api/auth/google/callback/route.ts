@@ -4,6 +4,9 @@ import { OAUTH_COOKIE, exchangeCodeForIdToken, googleConfig, publicOrigin } from
 import { errorMessage, log } from '@/lib/server/log';
 import { callService, requiredEnv, setSessionCookie } from '@/lib/server/session';
 
+// Leaves time to wait for a sleeping backend service to wake up (see callService).
+export const maxDuration = 60;
+
 export const dynamic = 'force-dynamic';
 
 interface StoredAttempt {

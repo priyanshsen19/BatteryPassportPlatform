@@ -2,6 +2,9 @@ import type { ApiResponse, LoginResult } from '@bpp/shared/schemas';
 import { NextResponse, type NextRequest } from 'next/server';
 import { callService, requiredEnv, setSessionCookie, withJsonErrors } from '@/lib/server/session';
 
+// Leaves time to wait for a sleeping backend service to wake up (see callService).
+export const maxDuration = 60;
+
 /** Registers the account, then signs it in so the user lands directly in the app. */
 async function handlePOST(request: NextRequest) {
   const authUrl = requiredEnv('AUTH_SERVICE_URL');

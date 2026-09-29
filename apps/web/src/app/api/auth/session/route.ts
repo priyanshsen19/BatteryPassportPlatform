@@ -8,6 +8,9 @@ import {
   withJsonErrors,
 } from '@/lib/server/session';
 
+// Leaves time to wait for a sleeping backend service to wake up (see callService).
+export const maxDuration = 60;
+
 export const dynamic = 'force-dynamic';
 
 /** Resolves the signed-in user by verifying the session token with the Auth Service. */
