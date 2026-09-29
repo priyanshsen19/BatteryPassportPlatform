@@ -35,6 +35,7 @@ export const passwordResetService = {
       logger.error('Password reset email could not be sent', {
         userId: user.id,
         error: err instanceof Error ? err.message : String(err),
+        code: (err as { code?: string }).code,
       });
       return;
     }

@@ -9,6 +9,21 @@ export interface PasswordResetMail {
 
 export interface Mailer {
   sendPasswordReset(mail: PasswordResetMail): Promise<void>;
+  /** Checks the SMTP connection and login at startup and logs the outcome; never throws. */
+  verify(): Promise<void>;
+}
+
+/** Turns common SMTP failures into an actionable hint for the logs. */
+function smtpHint(err: unknown): string {
+  const e = err as { code?: string; responseCode?: number; message?: string };
+  if (e.code === 'EAUTH' || e.responseCode === 535) {
+    return 'SMTP login rejected: check SMTP_USER/SMTP_PASSWORD (for Gmail, use an App Password, not the account password)';
+  }
+  if (e.code === 'ETIMEDOUT' || e.code === 'ECONNECTION' || e.code === 'ESOCKET') {
+    return 'SMTP server unreachable: check SMTP_HOST/SMTP_PORT (587 with SMTP_SECURE=false, or 465 with SMTP_SECURE=true) and that the host allows outbound SMTP';
+  }
+  if (e.code === 'EDNS' || e.code === 'ENOTFOUND') return 'SMTP_HOST could not be resolved';
+  return e.message ?? String(err);
 }
 
 /**
@@ -25,6 +40,9 @@ export function createMailer(): Mailer {
           resetUrl,
         });
       },
+      async verify() {
+        logger.warn('SMTP is not configured (SMTP_HOST is empty); password reset links will only be logged');
+      },
     };
   }
 
@@ -36,6 +54,19 @@ export function createMailer(): Mailer {
   });
 
   return {
+    async verify() {
+      try {
+        await transporter.verify();
+        logger.info('SMTP connection verified', { host: smtp.host, port: smtp.port, from: smtp.from });
+      } catch (err) {
+        logger.error('SMTP connection check failed', {
+          host: smtp.host,
+          port: smtp.port,
+          hint: smtpHint(err),
+        });
+      }
+    },
+
     async sendPasswordReset({ to, resetUrl, expiresInMinutes }) {
       const info = await transporter.sendMail({
         from: smtp.from,
@@ -50,7 +81,7 @@ export function createMailer(): Mailer {
           'If you did not ask for this, you can ignore this email; your password stays the same.',
         ].join('\n'),
       });
-      logger.info('Password reset email sent', { messageId: info.messageId });
+      logger.info('Password reset email sent', { messageId: info.messageId, accepted: info.accepted.length });
     },
   };
 }
