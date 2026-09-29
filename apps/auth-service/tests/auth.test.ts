@@ -63,12 +63,30 @@ describe('POST /api/auth/register', () => {
     expect(res.body).toMatchObject({ success: false, error: { code: 'EMAIL_ALREADY_REGISTERED' } });
   });
 
-  it('always creates a user account, even when a client asks for admin', async () => {
+  it('registers with the requested role', async () => {
     const res = await request(app).post('/api/auth/register').send(admin);
 
     expect(res.status).toBe(201);
+    expect(res.body.data.user.role).toBe('admin');
+    expect((await UserModel.findOne({ email: admin.email }))?.role).toBe('admin');
+  });
+
+  it('defaults to the user role when none is given', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'plain@example.com', password: 'PlainPassw0rd' });
+
+    expect(res.status).toBe(201);
     expect(res.body.data.user.role).toBe('user');
-    expect((await UserModel.findOne({ email: admin.email }))?.role).toBe('user');
+  });
+
+  it('rejects an unknown role with 422', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ ...user, role: 'superuser' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
 
   it('rejects invalid fields with 422', async () => {

@@ -5,17 +5,17 @@ import { callService, requiredEnv, setSessionCookie, withJsonErrors } from '@/li
 /** Registers the account, then signs it in so the user lands directly in the app. */
 async function handlePOST(request: NextRequest) {
   const authUrl = requiredEnv('AUTH_SERVICE_URL');
-  const payload = await request.text();
+  // Sign-ups from the web app always get the default `user` role; admins grant more access.
+  const { email, password } = (await request.json()) as { email: string; password: string };
 
   const registered = await callService(`${authUrl}/api/auth/register`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: payload,
+    body: JSON.stringify({ email, password }),
   });
   if (registered instanceof NextResponse) return registered;
   if (!registered.ok) return NextResponse.json(await registered.json(), { status: registered.status });
 
-  const { email, password } = JSON.parse(payload) as { email: string; password: string };
   const login = await callService(`${authUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

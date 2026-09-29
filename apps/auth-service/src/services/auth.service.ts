@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { Errors, type AuthUser, type LoginResult, type UserDto } from '@bpp/shared';
+import { Errors, type AuthUser, type LoginResult, type Role, type UserDto } from '@bpp/shared';
 import { config, logger } from '../config';
 import { toUserDto, type UserDocument } from '../models/user.model';
 import { userRepository } from '../repositories/user.repository';
@@ -29,14 +29,18 @@ function issueSession(user: UserDocument): LoginResult {
 }
 
 export const authService = {
-  /** Every self-registered account starts as a `user`; only an admin can promote it. */
-  async register(input: { email: string; password: string }): Promise<UserDto> {
+  /** Registers with the requested role (`user` when none is given), as the assignment specifies. */
+  async register(input: { email: string; password: string; role?: Role }): Promise<UserDto> {
     if (await userRepository.existsByEmail(input.email)) {
       throw Errors.conflict('EMAIL_ALREADY_REGISTERED', 'An account with this email already exists');
     }
 
     const passwordHash = await bcrypt.hash(input.password, config.bcryptSaltRounds);
-    const user = await userRepository.create({ email: input.email, passwordHash, role: 'user' });
+    const user = await userRepository.create({
+      email: input.email,
+      passwordHash,
+      role: input.role ?? 'user',
+    });
     logger.info('User registered', { userId: user.id, role: user.role });
     return toUserDto(user);
   },

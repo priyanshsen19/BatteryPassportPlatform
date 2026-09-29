@@ -36,7 +36,7 @@ export const openApiSpec = {
         tags: ['Auth'],
         summary: 'Register a user',
         description:
-          'Public. Every new account gets the `user` role; a `role` in the body is ignored. Admins assign other roles with `PATCH /api/auth/users/{id}/role`.',
+          'Public. `role` is optional (`admin`, `developer`, `tester` or `user`) and defaults to `user`. Admins can change roles later with `PATCH /api/auth/users/{id}/role`.',
         security: [],
         requestBody: {
           required: true,
@@ -48,9 +48,10 @@ export const openApiSpec = {
                 properties: {
                   email: { type: 'string', format: 'email' },
                   password: { type: 'string', minLength: 8, maxLength: 128 },
+                  role: { type: 'string', enum: ['admin', 'developer', 'tester', 'user'], default: 'user' },
                 },
               },
-              example: { email: 'new.user@example.com', password: 'Str0ngPassw0rd' },
+              example: { email: 'new.user@example.com', password: 'Str0ngPassw0rd', role: 'user' },
             },
           },
         },

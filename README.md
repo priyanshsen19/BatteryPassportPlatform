@@ -288,14 +288,14 @@ Validation failures (`422 VALIDATION_ERROR`) include `details: [{ "field", "mess
 
 ### Auth service (`:4001`)
 
-| Method | Path                       | Auth    | Description                                        |
-| ------ | -------------------------- | ------- | -------------------------------------------------- |
-| POST   | `/api/auth/register`       | public  | `{ email, password }` → `201`; always role `user`  |
-| POST   | `/api/auth/login`          | public  | `{ email, password }` → JWT                        |
-| POST   | `/api/auth/google`         | public  | `{ idToken }` (Google) → JWT                       |
-| GET    | `/api/auth/me`             | any JWT | Current user; used by other services               |
-| GET    | `/api/auth/users`          | admin   | Users with roles and sign-in methods (`q`, `role`) |
-| PATCH  | `/api/auth/users/:id/role` | admin   | `{ role }`; admins cannot change their own role    |
+| Method | Path                       | Auth    | Description                                                     |
+| ------ | -------------------------- | ------- | --------------------------------------------------------------- |
+| POST   | `/api/auth/register`       | public  | `{ email, password, role? }` → `201`; `role` defaults to `user` |
+| POST   | `/api/auth/login`          | public  | `{ email, password }` → JWT                                     |
+| POST   | `/api/auth/google`         | public  | `{ idToken }` (Google) → JWT                                    |
+| GET    | `/api/auth/me`             | any JWT | Current user; used by other services                            |
+| GET    | `/api/auth/users`          | admin   | Users with roles and sign-in methods (`q`, `role`)              |
+| PATCH  | `/api/auth/users/:id/role` | admin   | `{ role }`; admins cannot change their own role                 |
 
 ### Passport service (`:4002`)
 
@@ -390,8 +390,9 @@ Validation accepts battery categories `EV`, `LMT`, `Industrial`, `SLI`, `Portabl
   | Delete passports and documents                         |   ✓   |           |        |      |
   | Manage user roles (User roles page)                    |   ✓   |           |        |      |
 
-- **Every new account is a `user`**, whether it registers with a password or signs in with Google;
-  a `role` sent to `/api/auth/register` is ignored. Admins assign roles on the **User roles** page
+- **Registration follows the assignment:** `POST /api/auth/register` accepts an optional `role`
+  (`admin`, `developer`, `tester` or `user`, default `user`), so API clients can register an admin
+  directly. The web sign-up form and Google sign-in always create a `user`. Admins assign roles on the **User roles** page
   (`PATCH /api/auth/users/:id/role`). Role changes apply on the user's next request, because each
   token is re-checked against the stored role. Admins cannot change their own role, so the
   platform always keeps at least one admin.

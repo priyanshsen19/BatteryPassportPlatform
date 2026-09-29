@@ -42,6 +42,8 @@ export const registerSchema = z.object({
     .string()
     .min(8, 'Password must be at least 8 characters')
     .max(128, 'Password must be at most 128 characters'),
+  /** Optional, as in the assignment's register body; defaults to `user`. */
+  role: z.enum(ROLES, { error: `Role must be one of: ${ROLES.join(', ')}` }).default('user'),
 });
 
 export const loginSchema = z.object({
