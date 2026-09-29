@@ -71,23 +71,57 @@ export function withJsonErrors<Args extends unknown[]>(
   };
 }
 
+const WAKE_UP_WINDOW_MS = 75_000;
+const WAKE_UP_RETRY_MS = 2_500;
+
 /**
- * Calls a backend service, mapping network failures to a 502 envelope. The timeout is generous
- * because services on free hosting tiers can take close to a minute to wake up.
+ * Free hosting instances sleep when idle. While one starts, the platform itself answers with an
+ * HTML 502/503/504 page: the request never reached the service, so sending it again is safe.
+ * Our services always answer with JSON, which is how the two cases are told apart.
+ */
+function isPlatformWakeUpResponse(response: Response): boolean {
+  const isJson = response.headers.get('content-type')?.includes('application/json') ?? false;
+  return !isJson && [502, 503, 504].includes(response.status);
+}
+
+/**
+ * Calls a backend service, waiting (up to about a minute) for a sleeping service to wake up, and
+ * mapping network failures to a 502 envelope. `init.body` must be re-sendable (string or buffer).
  */
 export async function callService(
   url: string,
   init: RequestInit,
   timeoutMs = 60000,
 ): Promise<Response | NextResponse<ApiFailure>> {
-  try {
-    return await fetch(url, { ...init, cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) });
-  } catch (err) {
-    log('error', 'Backend service request failed', { url, error: errorMessage(err) });
-    return errorResponse(
-      502,
-      'SERVICE_UNAVAILABLE',
-      'The service is currently unavailable. Please try again.',
-    );
+  const deadline = Date.now() + WAKE_UP_WINDOW_MS;
+  for (let attempt = 1; ; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetch(url, { ...init, cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) });
+    } catch (err) {
+      log('error', 'Backend service request failed', { url, error: errorMessage(err) });
+      return errorResponse(
+        502,
+        'SERVICE_UNAVAILABLE',
+        'The service is currently unavailable. Please try again.',
+      );
+    }
+    if (!isPlatformWakeUpResponse(response) || Date.now() + WAKE_UP_RETRY_MS > deadline) return response;
+
+    await response.body?.cancel();
+    if (attempt === 1)
+      log('info', 'Backend service is starting up; waiting for it', { url, status: response.status });
+    await new Promise((resolve) => setTimeout(resolve, WAKE_UP_RETRY_MS));
+  }
+}
+
+/** Fire-and-forget request that makes sleeping services start booting before they are needed. */
+export function wakeServices(): void {
+  for (const name of ['AUTH_SERVICE_URL', 'PASSPORT_SERVICE_URL', 'DOCUMENT_SERVICE_URL'] as const) {
+    const base = process.env[name]?.trim().replace(/\/+$/, '');
+    if (!base) continue;
+    fetch(`${base}/health`, { cache: 'no-store', signal: AbortSignal.timeout(90_000) })
+      .then((r) => r.body?.cancel())
+      .catch(() => undefined);
   }
 }

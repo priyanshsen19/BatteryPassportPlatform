@@ -49,6 +49,7 @@ async function forward(request: NextRequest, { params }: RouteContext) {
   const upstream = await callService(url, {
     method: request.method,
     headers,
+    // Buffered so the request can be re-sent while a sleeping service wakes up.
     body: hasBody ? await request.arrayBuffer() : undefined,
   });
   if (upstream instanceof NextResponse) {

@@ -584,6 +584,15 @@ Notes:
   request then takes a while) and the notification service stops consuming while asleep; choose a
   paid instance type for it if notifications must be continuous.
 - Services talk to each other over their public HTTPS URLs, which works on every plan.
+- **Sleeping services.** While a free instance wakes up, Render answers with an HTML 502 page. The
+  web app recognises this (the services always answer with JSON), waits up to about a minute and
+  retries, and it starts waking all services as soon as the sign-in page opens, so visitors see a
+  slower first load instead of an error.
+- **Keep-alive (optional).** [`.github/workflows/keep-alive.yml`](.github/workflows/keep-alive.yml)
+  pings every service every 10 minutes when the repository variable `KEEP_ALIVE` is `true`, or once
+  on demand from the Actions tab. It is off by default because free instance hours are shared by
+  the workspace (750 a month) and five always-on services need about 3,600; use it for an
+  evaluation or demo window, or move the services to a paid instance type for permanent uptime.
 - Render re-applies fixed `value:` entries from `render.yaml` on every Blueprint sync. Settings
   that depend on your accounts (`AWS_REGION`, `KAFKA_SSL`, `KAFKA_SASL_MECHANISM`, …) are therefore
   `sync: false`, so values edited in the dashboard are kept. `AWS_REGION` must be the bucket's

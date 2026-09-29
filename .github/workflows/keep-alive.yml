@@ -1,0 +1,41 @@
+# Keeps the Render free-plan services awake by calling their health endpoints every few minutes
+# (Render puts free services to sleep after 15 minutes without traffic).
+#
+# Off by default: free instance hours are shared by the whole Render workspace (750 per month),
+# and five services kept awake around the clock need about 3,600. Turn it on for an evaluation or
+# demo period by setting the repository variable KEEP_ALIVE=true (Settings → Secrets and
+# variables → Actions → Variables), or run it once from the Actions tab to wake everything now.
+name: Keep alive
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    if: github.event_name == 'workflow_dispatch' || vars.KEEP_ALIVE == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      URLS: >-
+        ${{ vars.KEEP_ALIVE_URLS || 'https://bpp-web.onrender.com/login
+        https://bpp-auth-service.onrender.com/health
+        https://bpp-passport-service.onrender.com/health
+        https://bpp-document-service.onrender.com/health
+        https://bpp-notification-service.onrender.com/health' }}
+    steps:
+      - name: Ping services
+        run: |
+          failed=0
+          for url in $URLS; do
+            # A sleeping service can take up to a minute to start.
+            if code=$(curl -s -o /dev/null -w '%{http_code}' --retry 6 --retry-delay 10 --retry-all-errors --max-time 90 "$url") && [ "$code" -lt 400 ]; then
+              echo "OK   $code $url"
+            else
+              echo "FAIL ${code:-000} $url"; failed=1
+            fi
+          done
+          exit $failed

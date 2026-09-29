@@ -2,6 +2,7 @@ import { FileLock2, QrCode, ShieldCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/logo';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { WakeServices } from '@/components/layout/wake-services';
 
 const HIGHLIGHTS = [
   { icon: QrCode, text: 'A scannable digital passport for every battery' },
@@ -12,6 +13,7 @@ const HIGHLIGHTS = [
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <WakeServices />
       <aside className="relative hidden overflow-hidden bg-sidebar p-12 lg:flex lg:flex-col">
         <div
           className="pointer-events-none absolute -right-24 -bottom-24 size-96 rounded-full border-[48px] border-brand/10"
