@@ -553,6 +553,10 @@ Notes:
   request then takes a while) and the notification service stops consuming while asleep; choose a
   paid instance type for it if notifications must be continuous.
 - Services talk to each other over their public HTTPS URLs, which works on every plan.
+- Render re-applies fixed `value:` entries from `render.yaml` on every Blueprint sync. Settings
+  that depend on your accounts (`AWS_REGION`, `KAFKA_SSL`, `KAFKA_SASL_MECHANISM`, …) are therefore
+  `sync: false`, so values edited in the dashboard are kept. `AWS_REGION` must be the bucket's
+  region; if it is not, the document service stops at startup and logs the region to use.
 - For Google sign-in, add `https://<bpp-web URL>/api/auth/google/callback` as an authorized
   redirect URI and set `GOOGLE_CLIENT_ID` (auth, web) and `GOOGLE_CLIENT_SECRET` (web).
 

@@ -1,6 +1,6 @@
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { createLogger } from '@bpp/shared';
-import { S3Storage } from '../src/storage/s3Storage';
+import { S3Storage, describeBucketError } from '../src/storage/s3Storage';
 import { buildObjectKey, sanitizeFileName } from '../src/storage/objectKey';
 
 const logger = createLogger('test', { silent: true });
@@ -11,6 +11,57 @@ const options = {
   forcePathStyle: false,
   downloadUrlTtlSeconds: 300,
 };
+
+const s3Error = (status: number, headers: Record<string, string> = {}) =>
+  Object.assign(new Error('UnknownError'), {
+    name: 'Unknown',
+    $metadata: { httpStatusCode: status },
+    $response: { headers },
+  });
+
+describe('S3 bucket check', () => {
+  it('names the bucket region when AWS_REGION is wrong (HTTP 301)', () => {
+    const problem = describeBucketError(s3Error(301, { 'x-amz-bucket-region': 'eu-north-1' }), options);
+    expect(problem.configuration).toBe(true);
+    expect(problem.hint).toContain('is in region eu-north-1 but AWS_REGION is eu-central-1');
+  });
+
+  it.each([
+    [403, 'access denied'],
+    [404, 'does not exist'],
+  ])('explains HTTP %i', (status, text) => {
+    expect(describeBucketError(s3Error(status), options).hint).toContain(text);
+  });
+
+  it('treats network errors as transient', () => {
+    expect(describeBucketError(new Error('ECONNREFUSED'), options).configuration).toBe(false);
+  });
+
+  it('fails immediately on a region mismatch instead of retrying', async () => {
+    const client = new S3Client({ region: options.region, credentials: options.credentials });
+    const send = jest
+      .spyOn(client, 'send')
+      .mockRejectedValue(s3Error(301, { 'x-amz-bucket-region': 'eu-north-1' }) as never);
+
+    await expect(new S3Storage(options, logger, client).verifyBucket(10, 1)).rejects.toThrow(
+      'set AWS_REGION=eu-north-1',
+    );
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries transient failures and then succeeds', async () => {
+    const client = new S3Client({ region: options.region, credentials: options.credentials });
+    const send = jest
+      .spyOn(client, 'send')
+      .mockRejectedValueOnce(new Error('ECONNREFUSED') as never)
+      .mockResolvedValueOnce({} as never);
+
+    const storage = new S3Storage(options, logger, client);
+    await storage.verifyBucket(3, 1);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(storage.isReady()).toBe(true);
+  });
+});
 
 describe('S3Storage', () => {
   it('sends PutObject with bucket, key, content type and server-side encryption', async () => {
