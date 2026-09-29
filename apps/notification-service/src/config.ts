@@ -19,12 +19,15 @@ const envSchema = commonEnvSchema.extend(kafkaEnvSchema.shape).extend({
 const env = loadEnv(envSchema);
 
 const smtpConfigured = Boolean(env.SMTP_HOST && env.NOTIFICATION_EMAIL_TO);
+/** Explains why email is off when it looks half-configured. */
+const smtpMissing = env.SMTP_HOST && !env.NOTIFICATION_EMAIL_TO ? 'NOTIFICATION_EMAIL_TO' : undefined;
 
 export const config = {
   serviceName: 'notification-service',
   port: env.PORT,
   kafka: env,
   kafkaGroupId: env.KAFKA_GROUP_ID,
+  smtpMissing,
   smtp: smtpConfigured
     ? {
         host: env.SMTP_HOST as string,

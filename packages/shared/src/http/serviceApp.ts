@@ -15,6 +15,8 @@ export interface ServiceAppOptions {
   openApiSpec?: object;
   jsonBodyLimit?: string;
   healthChecks?: () => Record<string, DependencyStatus>;
+  /** Extra status shown on /health that does not affect the health result (e.g. optional channels). */
+  healthInfo?: () => Record<string, string>;
 }
 
 /**
@@ -50,6 +52,7 @@ export function createServiceApp(options: ServiceAppOptions): Express {
       status: healthy ? 'ok' : 'degraded',
       service: options.serviceName,
       dependencies,
+      ...options.healthInfo?.(),
     });
   });
 

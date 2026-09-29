@@ -9,12 +9,43 @@ import { LogNotifier } from './notifications/logNotifier';
 import type { Notifier } from './notifications/notification';
 import { NotificationDispatcher } from './notifications/notificationDispatcher';
 
+/** `disabled`, `checking`, `up` (SMTP login verified) or `error` (see the log for the reason). */
+let emailStatus = 'disabled';
+
+/** Turns common SMTP failures into an actionable hint for the logs. */
+function smtpHint(err: unknown): string {
+  const e = err as { code?: string; responseCode?: number; message?: string };
+  if (e.code === 'EAUTH' || e.responseCode === 535) {
+    return 'SMTP login rejected: check SMTP_USER/SMTP_PASSWORD (for Gmail, use an App Password)';
+  }
+  if (e.code === 'ETIMEDOUT' || e.code === 'ECONNECTION' || e.code === 'ESOCKET') {
+    return 'SMTP server unreachable: check SMTP_HOST/SMTP_PORT/SMTP_SECURE and that outbound SMTP is allowed';
+  }
+  return e.message ?? String(err);
+}
+
 function createNotifiers(): Notifier[] {
   const notifiers: Notifier[] = [new LogNotifier(logger)];
 
   if (config.smtp) {
     const { from, to, ...transportOptions } = config.smtp;
-    notifiers.push(new EmailNotifier(nodemailer.createTransport(transportOptions), { from, to }, logger));
+    const transporter = nodemailer.createTransport(transportOptions);
+    notifiers.push(new EmailNotifier(transporter, { from, to }, logger));
+
+    // Checked in the background so a slow SMTP server never delays consuming events.
+    emailStatus = 'checking';
+    transporter
+      .verify()
+      .then(() => {
+        emailStatus = 'up';
+        logger.info('SMTP connection verified', { host: transportOptions.host, to });
+      })
+      .catch((err: unknown) => {
+        emailStatus = 'error';
+        logger.error('SMTP connection check failed', { host: transportOptions.host, hint: smtpHint(err) });
+      });
+  } else if (config.smtpMissing) {
+    logger.warn(`SMTP_HOST is set but ${config.smtpMissing} is empty: email notifications are off`);
   }
 
   logger.info('Notification channels configured', { channels: notifiers.map((n) => n.channel) });
@@ -32,7 +63,10 @@ async function main(): Promise<void> {
 
   await consumer.start();
   const server = await startHttpServer(
-    createApp(() => consumer.isConnected()),
+    createApp(
+      () => consumer.isConnected(),
+      () => emailStatus,
+    ),
     config.port,
     logger,
   );
