@@ -507,8 +507,16 @@ cross-service HTTP calls are replaced by fakes at their interfaces.
 | document     | upload to storage with metadata, key format, type and size limits, unknown passport, S3 failure, pre-signed URL, metadata update, delete (including partial failure), S3 client commands and URL signing, file-name sanitising |
 | notification | consuming all three event types, invalid messages, duplicates, log and email channels, channel failure isolation, health                                                                                                       |
 
-The full stack was also exercised end to end against Docker Compose (registration, RBAC,
-passport lifecycle, S3 upload/download/delete, Kafka notifications).
+End to end against the running Docker Compose stack (about 90 checks: every role on every
+endpoint, S3 upload/download/delete, Kafka notifications, password reset, the web app's session):
+
+```bash
+docker compose up -d --build
+pnpm test:e2e
+```
+
+[docs/testing-guide.md](docs/testing-guide.md) walks through every flow by hand, in the web app
+and with curl against the local or hosted services.
 
 Other checks: `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm build`.
 

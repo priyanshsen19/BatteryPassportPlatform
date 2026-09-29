@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm build:shared && pnpm -r test",
-    "seed": "pnpm --filter auth-service seed"
+    "seed": "pnpm --filter auth-service seed",
+    "test:e2e": "node scripts/e2e.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
