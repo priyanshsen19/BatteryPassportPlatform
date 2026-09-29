@@ -7,9 +7,11 @@ import {
 } from '@bpp/shared';
 import { createApp } from './app';
 import { config, logger } from './config';
+import { ensureBootstrapAdmin } from './services/bootstrap-admin';
 
 async function main(): Promise<void> {
   await connectMongo(config.mongoUri, logger);
+  await ensureBootstrapAdmin();
   const server = await startHttpServer(createApp(), config.port, logger);
   registerGracefulShutdown(logger, [() => closeServer(server), disconnectMongo]);
 }

@@ -1,15 +1,19 @@
 'use client';
 
-import type {
-  AuthUser,
-  DocumentDownload,
-  DocumentDto,
-  DownloadDisposition,
-  Paginated,
-  PassportDto,
-  PassportListQuery,
-  PassportRequest,
-  UpdateDocumentInput,
+import {
+  hasPermission,
+  type AuthUser,
+  type DocumentDownload,
+  type DocumentDto,
+  type DownloadDisposition,
+  type ManagedUserDto,
+  type Paginated,
+  type PassportDto,
+  type PassportListQuery,
+  type PassportRequest,
+  type Permission,
+  type Role,
+  type UpdateDocumentInput,
 } from '@bpp/shared/schemas';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, parseResponse } from './api-client';
@@ -25,7 +29,15 @@ export const queryKeys = {
   documents: (filter: { passportId?: string; page: number; limit: number }) => ['documents', filter] as const,
   documentLink: (docId: string, disposition: DownloadDisposition) =>
     ['document-link', docId, disposition] as const,
+  users: (params: UserListParams) => ['users', params] as const,
 };
+
+export interface UserListParams {
+  page?: number;
+  limit?: number;
+  q?: string;
+  role?: Role;
+}
 
 function toSearchParams(params: object): URLSearchParams {
   const search = new URLSearchParams();
@@ -45,13 +57,32 @@ export function useSession() {
 }
 
 /**
- * Admin-only UI is revealed after hydration: Suspense boundaries hydrate after the session
- * query may already have resolved, and the server HTML never contains role-specific controls.
+ * Whether the signed-in user's role grants `permission` (shared PERMISSIONS table). Role-specific
+ * UI is revealed only after hydration: Suspense boundaries hydrate after the session query may
+ * already have resolved, and the server HTML never contains role-specific controls.
+ * The services enforce the same permissions on every request.
  */
-export function useIsAdmin(): boolean {
+export function useCan(permission: Permission): boolean {
   const isClient = useIsClient();
   const role = useSession().data?.role;
-  return isClient && role === 'admin';
+  return isClient && hasPermission(role, permission);
+}
+
+export function useUsers(params: UserListParams) {
+  return useQuery({
+    queryKey: queryKeys.users(params),
+    queryFn: () => api.get<Paginated<ManagedUserDto>>(`/users?${toSearchParams(params)}`),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useUpdateUserRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: Role }) =>
+      api.patch<ManagedUserDto>(`/users/${userId}/role`, { role }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  });
 }
 
 export function usePassports(params: PassportListParams = {}, options: { enabled?: boolean } = {}) {

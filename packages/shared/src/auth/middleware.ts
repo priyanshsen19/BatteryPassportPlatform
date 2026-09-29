@@ -1,6 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { Errors } from '../errors';
-import type { AuthUser, Role } from '../schemas/auth';
+import { PERMISSIONS, type AuthUser, type Permission, type Role } from '../schemas/auth';
 import './context';
 
 /** Resolves a bearer token to the authenticated user or throws an AppError. */
@@ -43,4 +43,9 @@ export function requireRole(...roles: Role[]): RequestHandler {
     }
     return next();
   };
+}
+
+/** Restricts a route to the roles granted `permission` in the shared PERMISSIONS table. */
+export function requirePermission(permission: Permission): RequestHandler {
+  return requireRole(...PERMISSIONS[permission]);
 }

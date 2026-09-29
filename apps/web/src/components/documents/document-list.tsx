@@ -11,7 +11,7 @@ import { ConfirmDialog } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/surface';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/table';
 import { ApiError } from '@/lib/api-client';
-import { downloadDocument, useDeleteDocument } from '@/lib/queries';
+import { downloadDocument, useCan, useDeleteDocument } from '@/lib/queries';
 import { formatBytes, formatDate, mimeLabel } from '@/lib/utils';
 import { DocumentPreviewDialog, canPreview } from './document-preview-dialog';
 import { RenameDocumentDialog } from './rename-document-dialog';
@@ -23,11 +23,12 @@ function FileIcon({ doc }: { doc: DocumentDto }) {
 
 interface DocumentListProps {
   documents: DocumentDto[];
-  isAdmin: boolean;
   showPassport?: boolean;
 }
 
-export function DocumentList({ documents, isAdmin, showPassport }: DocumentListProps) {
+export function DocumentList({ documents, showPassport }: DocumentListProps) {
+  const canEdit = useCan('document:write');
+  const canDelete = useCan('document:delete');
   const [downloading, setDownloading] = useState<string | null>(null);
   const [toRename, setToRename] = useState<DocumentDto | null>(null);
   const [toDelete, setToDelete] = useState<DocumentDto | null>(null);
@@ -79,27 +80,27 @@ export function DocumentList({ documents, isAdmin, showPassport }: DocumentListP
       >
         {downloading !== doc.docId && <Download />}
       </Button>
-      {isAdmin && (
-        <>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setToRename(doc)}
-            aria-label={`Rename ${doc.fileName}`}
-            title="Rename"
-          >
-            <Pencil />
-          </Button>
-          <Button
-            variant="danger-ghost"
-            size="icon-sm"
-            onClick={() => setToDelete(doc)}
-            aria-label={`Delete ${doc.fileName}`}
-            title="Delete"
-          >
-            <Trash2 />
-          </Button>
-        </>
+      {canEdit && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setToRename(doc)}
+          aria-label={`Rename ${doc.fileName}`}
+          title="Rename"
+        >
+          <Pencil />
+        </Button>
+      )}
+      {canDelete && (
+        <Button
+          variant="danger-ghost"
+          size="icon-sm"
+          onClick={() => setToDelete(doc)}
+          aria-label={`Delete ${doc.fileName}`}
+          title="Delete"
+        >
+          <Trash2 />
+        </Button>
       )}
     </div>
   );

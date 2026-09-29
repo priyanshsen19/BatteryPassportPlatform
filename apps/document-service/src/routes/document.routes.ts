@@ -1,5 +1,5 @@
 import {
-  requireRole,
+  requirePermission,
   updateDocumentSchema,
   uploadDocumentFieldsSchema,
   validateBody,
@@ -15,24 +15,25 @@ export function createDocumentRouter(
   maxUploadSizeBytes: number,
 ): Router {
   const router = Router();
-  const anyRole = requireRole('admin', 'user');
-  const adminOnly = requireRole('admin');
+  const canRead = requirePermission('document:read');
+  const canWrite = requirePermission('document:write');
+  const canDelete = requirePermission('document:delete');
   const validDocId = validateObjectIdParam('docId');
 
   router.use(authenticateJWT);
 
-  router.get('/', anyRole, controller.list);
+  router.get('/', canRead, controller.list);
   router.post(
     '/upload',
-    adminOnly,
+    canWrite,
     uploadSingleFile(maxUploadSizeBytes),
     validateBody(uploadDocumentFieldsSchema),
     controller.upload,
   );
 
-  router.get('/:docId', validDocId, anyRole, controller.getDownload);
-  router.put('/:docId', validDocId, adminOnly, validateBody(updateDocumentSchema), controller.update);
-  router.delete('/:docId', validDocId, adminOnly, controller.remove);
+  router.get('/:docId', validDocId, canRead, controller.getDownload);
+  router.put('/:docId', validDocId, canWrite, validateBody(updateDocumentSchema), controller.update);
+  router.delete('/:docId', validDocId, canDelete, controller.remove);
 
   return router;
 }

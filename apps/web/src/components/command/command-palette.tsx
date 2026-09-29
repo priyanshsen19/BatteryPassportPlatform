@@ -13,6 +13,7 @@ import {
   Plus,
   Search,
   Sun,
+  UsersRound,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
@@ -21,7 +22,7 @@ import { StatusBadge } from '@/components/passports/passport-badges';
 import { overlayClass } from '@/components/ui/dialog';
 import { authApi } from '@/lib/api-client';
 import { useDebouncedValue } from '@/lib/hooks';
-import { useIsAdmin, usePassports } from '@/lib/queries';
+import { useCan, usePassports } from '@/lib/queries';
 
 interface CommandPaletteContextValue {
   open: () => void;
@@ -43,7 +44,8 @@ const groupClass =
 function PaletteBody({ close }: { close: () => void }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const isAdmin = useIsAdmin();
+  const canCreate = useCan('passport:write');
+  const canManageUsers = useCan('user:manage');
   const { setTheme } = useTheme();
   const [search, setSearch] = useState('');
   const query = useDebouncedValue(search.trim(), 200);
@@ -118,7 +120,17 @@ function PaletteBody({ close }: { close: () => void }) {
             <FileText aria-hidden />
             Documents
           </Command.Item>
-          {isAdmin && (
+          {canManageUsers && (
+            <Command.Item
+              keywords={['users', 'roles', 'permissions', 'admin']}
+              onSelect={() => go('/users')}
+              className={itemClass}
+            >
+              <UsersRound aria-hidden />
+              User roles
+            </Command.Item>
+          )}
+          {canCreate && (
             <Command.Item
               keywords={['create', 'add']}
               onSelect={() => go('/passports/new')}

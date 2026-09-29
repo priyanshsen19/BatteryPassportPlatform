@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/surface';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/table';
+import { useCan } from '@/lib/queries';
 import { cn, formatDate } from '@/lib/utils';
 import { CategoryBadge, StatusBadge } from './passport-badges';
 import { DeletePassportDialog } from './delete-passport-dialog';
@@ -20,7 +21,6 @@ export interface SortState {
 
 interface PassportListProps {
   passports: PassportDto[];
-  isAdmin: boolean;
   compact?: boolean;
   sorting?: SortState;
 }
@@ -65,8 +65,10 @@ function ColumnHeader({
 }
 
 /** Table on medium+ screens, stacked rows on small screens. */
-export function PassportList({ passports, isAdmin, compact, sorting }: PassportListProps) {
+export function PassportList({ passports, compact, sorting }: PassportListProps) {
   const router = useRouter();
+  const canEdit = useCan('passport:write');
+  const canDelete = useCan('passport:delete');
   const [toDelete, setToDelete] = useState<PassportDto | null>(null);
   const showActions = !compact;
 
@@ -118,25 +120,25 @@ export function PassportList({ passports, isAdmin, compact, sorting }: PassportL
                   {showActions && (
                     <TD className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-1">
-                        {isAdmin && (
-                          <>
-                            <Button variant="ghost" size="icon-sm" asChild>
-                              <Link
-                                href={`/passports/${passport.id}/edit`}
-                                aria-label={`Edit ${info.batteryIdentifier}`}
-                              >
-                                <Pencil />
-                              </Link>
-                            </Button>
-                            <Button
-                              variant="danger-ghost"
-                              size="icon-sm"
-                              aria-label={`Delete ${info.batteryIdentifier}`}
-                              onClick={() => setToDelete(passport)}
+                        {canEdit && (
+                          <Button variant="ghost" size="icon-sm" asChild>
+                            <Link
+                              href={`/passports/${passport.id}/edit`}
+                              aria-label={`Edit ${info.batteryIdentifier}`}
                             >
-                              <Trash2 />
-                            </Button>
-                          </>
+                              <Pencil />
+                            </Link>
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="danger-ghost"
+                            size="icon-sm"
+                            aria-label={`Delete ${info.batteryIdentifier}`}
+                            onClick={() => setToDelete(passport)}
+                          >
+                            <Trash2 />
+                          </Button>
                         )}
                         <Button variant="ghost" size="icon-sm" asChild>
                           <Link

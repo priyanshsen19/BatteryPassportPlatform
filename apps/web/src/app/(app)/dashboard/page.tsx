@@ -8,7 +8,7 @@ import { PassportTile } from '@/components/passports/passport-card';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { Button } from '@/components/ui/button';
 import { Card, EmptyState, ErrorState, PageHeader, Skeleton } from '@/components/ui/surface';
-import { useDocuments, useIsAdmin, usePassports, useSession } from '@/lib/queries';
+import { useDocuments, useCan, usePassports, useSession } from '@/lib/queries';
 import { formatDateTime, formatRelative } from '@/lib/utils';
 
 interface StatCardProps {
@@ -53,12 +53,12 @@ function StatCard({ label, icon, value, detail, href, loading }: StatCardProps) 
 
 export default function DashboardPage() {
   const { data: user } = useSession();
-  const isAdmin = useIsAdmin();
+  const canCreate = useCan('passport:write');
   const passports = usePassports({ limit: 6, sort: 'createdAt', order: 'desc' });
   const documents = useDocuments({ limit: 1 });
 
   const latest = passports.data?.items[0];
-  const newPassportButton = isAdmin && (
+  const newPassportButton = canCreate && (
     <Button asChild>
       <Link href="/passports/new">
         <Plus />
@@ -150,7 +150,7 @@ export default function DashboardPage() {
               icon={<BatteryCharging />}
               title="No passports yet"
               description={
-                isAdmin
+                canCreate
                   ? 'Create the first battery passport to start tracking its lifecycle data.'
                   : 'Passports created by an administrator will appear here.'
               }

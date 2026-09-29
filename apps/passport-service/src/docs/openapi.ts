@@ -146,7 +146,7 @@ export const openApiSpec = {
       post: {
         tags: ['Passports'],
         summary: 'Create a passport',
-        description: 'Role: **admin**. Emits `passport.created`.',
+        description: 'Roles: **admin**, **developer**. Emits `passport.created`.',
         requestBody,
         responses: {
           201: successResponse('Passport created', passportRef, examplePassport),
@@ -157,7 +157,7 @@ export const openApiSpec = {
         tags: ['Passports'],
         summary: 'List passports',
         description:
-          'Roles: **admin**, **user**. Supports free-text search (battery identifier, model, manufacturer), ' +
+          'All roles. Supports free-text search (battery identifier, model, manufacturer), ' +
           'filtering by category and status, and sorting.',
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
@@ -195,7 +195,7 @@ export const openApiSpec = {
       get: {
         tags: ['Passports'],
         summary: 'Get a passport',
-        description: 'Roles: **admin**, **user**.',
+        description: 'All roles.',
         responses: {
           200: successResponse('The passport', passportRef, examplePassport),
           ...errorResponses(400, 401, 403, 404),
@@ -204,7 +204,8 @@ export const openApiSpec = {
       put: {
         tags: ['Passports'],
         summary: 'Update a passport',
-        description: 'Role: **admin**. Replaces the passport `data`. Emits `passport.updated`.',
+        description:
+          'Roles: **admin**, **developer**. Replaces the passport `data`. Emits `passport.updated`.',
         requestBody,
         responses: {
           200: successResponse('Updated passport', passportRef, examplePassport),
@@ -214,7 +215,7 @@ export const openApiSpec = {
       delete: {
         tags: ['Passports'],
         summary: 'Delete a passport',
-        description: 'Role: **admin**. Emits `passport.deleted`.',
+        description: 'Role: **admin** only. Emits `passport.deleted`.',
         responses: {
           200: successResponse(
             'Passport deleted',

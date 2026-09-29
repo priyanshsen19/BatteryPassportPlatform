@@ -19,7 +19,7 @@ import { PassportToolbar, type PassportView } from '@/components/passports/passp
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/ui/pagination';
 import { Card, EmptyState, ErrorState, PageHeader, Skeleton } from '@/components/ui/surface';
-import { useIsAdmin, usePassports } from '@/lib/queries';
+import { useCan, usePassports } from '@/lib/queries';
 
 const PAGE_SIZE = 20;
 const DATE_FIELDS: PassportSortField[] = ['createdAt', 'manufacturingDate'];
@@ -64,7 +64,7 @@ function usePassportListState() {
 }
 
 function PassportsContent() {
-  const isAdmin = useIsAdmin();
+  const canCreate = useCan('passport:write');
   const { state, update } = usePassportListState();
   const { data, isLoading, isError, error, refetch, isPlaceholderData } = usePassports({
     q: state.q || undefined,
@@ -82,7 +82,7 @@ function PassportsContent() {
   };
 
   const filtered = Boolean(state.q || state.category || state.status);
-  const newPassportButton = isAdmin && (
+  const newPassportButton = canCreate && (
     <Button asChild>
       <Link href="/passports/new">
         <Plus />
@@ -122,7 +122,7 @@ function PassportsContent() {
         icon={<BatteryCharging />}
         title="No passports yet"
         description={
-          isAdmin
+          canCreate
             ? 'Battery passports you create will be listed here.'
             : 'Passports created by an administrator will appear here.'
         }
@@ -139,11 +139,7 @@ function PassportsContent() {
             ))}
           </div>
         ) : (
-          <PassportList
-            passports={data.items}
-            isAdmin={isAdmin}
-            sorting={{ sort: state.sort, order: state.order, onSort }}
-          />
+          <PassportList passports={data.items} sorting={{ sort: state.sort, order: state.order, onSort }} />
         )}
         <Pagination
           page={state.page}

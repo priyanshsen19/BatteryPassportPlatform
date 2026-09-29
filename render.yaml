@@ -27,6 +27,10 @@ services:
         sync: false # public URL of bpp-web
       - key: GOOGLE_CLIENT_ID
         sync: false # optional
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false # first admin account, created or promoted at startup
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false # used only if that account does not exist yet
 
   - type: web
     name: bpp-passport-service

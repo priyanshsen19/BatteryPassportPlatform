@@ -1,4 +1,4 @@
-import { passportRequestSchema, requireRole, validateBody, validateObjectIdParam } from '@bpp/shared';
+import { passportRequestSchema, requirePermission, validateBody, validateObjectIdParam } from '@bpp/shared';
 import { Router, type RequestHandler } from 'express';
 import type { PassportController } from '../controllers/passport.controller';
 
@@ -7,23 +7,24 @@ export function createPassportRouter(
   authenticateJWT: RequestHandler,
 ): Router {
   const router = Router();
-  const anyRole = requireRole('admin', 'user');
-  const adminOnly = requireRole('admin');
+  const canRead = requirePermission('passport:read');
+  const canWrite = requirePermission('passport:write');
+  const canDelete = requirePermission('passport:delete');
 
   router.use(authenticateJWT);
 
-  router.get('/', anyRole, controller.list);
-  router.post('/', adminOnly, validateBody(passportRequestSchema), controller.create);
+  router.get('/', canRead, controller.list);
+  router.post('/', canWrite, validateBody(passportRequestSchema), controller.create);
 
-  router.get('/:id', validateObjectIdParam('id'), anyRole, controller.getById);
+  router.get('/:id', validateObjectIdParam('id'), canRead, controller.getById);
   router.put(
     '/:id',
     validateObjectIdParam('id'),
-    adminOnly,
+    canWrite,
     validateBody(passportRequestSchema),
     controller.update,
   );
-  router.delete('/:id', validateObjectIdParam('id'), adminOnly, controller.remove);
+  router.delete('/:id', validateObjectIdParam('id'), canDelete, controller.remove);
 
   return router;
 }

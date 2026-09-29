@@ -3,7 +3,18 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { BatteryCharging, FileText, LayoutDashboard, LogOut, Menu, Search, X } from 'lucide-react';
+import type { Permission } from '@bpp/shared/schemas';
+import {
+  BatteryCharging,
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Search,
+  UsersRound,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useSyncExternalStore, type ReactNode } from 'react';
@@ -12,21 +23,24 @@ import { CommandPaletteProvider, useCommandPalette } from '@/components/command/
 import { Button } from '@/components/ui/button';
 import { overlayClass } from '@/components/ui/dialog';
 import { authApi } from '@/lib/api-client';
-import { useSession } from '@/lib/queries';
+import { useCan, useSession } from '@/lib/queries';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from './theme-toggle';
 
-const NAV_ITEMS = [
+const NAV_ITEMS: { href: string; label: string; icon: LucideIcon; permission?: Permission }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/passports', label: 'Passports', icon: BatteryCharging },
   { href: '/documents', label: 'Documents', icon: FileText },
+  { href: '/users', label: 'User roles', icon: UsersRound, permission: 'user:manage' },
 ];
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const canManageUsers = useCan('user:manage');
+  const items = NAV_ITEMS.filter((item) => item.permission !== 'user:manage' || canManageUsers);
   return (
     <nav aria-label="Main" className="flex flex-col gap-0.5">
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+      {items.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link

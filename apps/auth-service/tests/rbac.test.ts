@@ -25,7 +25,9 @@ let mongod: MongoMemoryServer;
 
 async function tokenFor(role: 'admin' | 'user'): Promise<string> {
   const email = `${role}@example.com`;
-  await request(authApp).post('/api/auth/register').send({ email, password: 'Passw0rd123', role });
+  await request(authApp).post('/api/auth/register').send({ email, password: 'Passw0rd123' });
+  // Admins are never self-registered; promote directly in the database for the test.
+  if (role === 'admin') await UserModel.updateOne({ email }, { $set: { role: 'admin' } });
   const res = await request(authApp).post('/api/auth/login').send({ email, password: 'Passw0rd123' });
   return res.body.data.token as string;
 }

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, EmptyState, ErrorState, PageHeader, Section, Skeleton } from '@/components/ui/surface';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/table';
 import { ApiError } from '@/lib/api-client';
-import { useDocuments, useIsAdmin, usePassport } from '@/lib/queries';
+import { useCan, useDocuments, usePassport } from '@/lib/queries';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 
 function Detail({ label, children, mono }: { label: string; children: ReactNode; mono?: boolean }) {
@@ -33,7 +33,8 @@ function DetailGrid({ children }: { children: ReactNode }) {
   return <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">{children}</dl>;
 }
 
-function PassportDocuments({ passportId, isAdmin }: { passportId: string; isAdmin: boolean }) {
+function PassportDocuments({ passportId }: { passportId: string }) {
+  const canUpload = useCan('document:write');
   const { data, isLoading, isError, error, refetch } = useDocuments({ passportId, limit: 100 });
 
   return (
@@ -44,7 +45,7 @@ function PassportDocuments({ passportId, isAdmin }: { passportId: string; isAdmi
       className="overflow-hidden"
     >
       <div className="-m-5">
-        {isAdmin && (
+        {canUpload && (
           <div className="border-b border-line p-5">
             <DocumentUpload passportId={passportId} />
           </div>
@@ -54,13 +55,13 @@ function PassportDocuments({ passportId, isAdmin }: { passportId: string; isAdmi
         ) : isError ? (
           <ErrorState message={error.message} onRetry={() => refetch()} />
         ) : data && data.items.length > 0 ? (
-          <DocumentList documents={data.items} isAdmin={isAdmin} />
+          <DocumentList documents={data.items} />
         ) : (
           <EmptyState
             icon={<FileText />}
             title="No documents"
             description={
-              isAdmin
+              canUpload
                 ? 'Upload a file above to attach it to this passport.'
                 : 'No files have been attached to this passport.'
             }
@@ -71,7 +72,7 @@ function PassportDocuments({ passportId, isAdmin }: { passportId: string; isAdmi
   );
 }
 
-function PassportDetail({ passport, isAdmin }: { passport: PassportDto; isAdmin: boolean }) {
+function PassportDetail({ passport }: { passport: PassportDto }) {
   const { generalInformation: info, materialComposition: materials, carbonFootprint: carbon } = passport.data;
 
   return (
@@ -175,7 +176,7 @@ function PassportDetail({ passport, isAdmin }: { passport: PassportDto; isAdmin:
         </div>
       </Section>
 
-      <PassportDocuments passportId={passport.id} isAdmin={isAdmin} />
+      <PassportDocuments passportId={passport.id} />
 
       <p className="text-xs text-ink-subtle">Created {formatDateTime(passport.createdAt)}</p>
     </div>
@@ -205,7 +206,8 @@ function DetailSkeleton() {
 export default function PassportPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const isAdmin = useIsAdmin();
+  const canEdit = useCan('passport:write');
+  const canDelete = useCan('passport:delete');
   const { data: passport, isLoading, isError, error, refetch } = usePassport(id);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -252,25 +254,29 @@ export default function PassportPage() {
             : undefined
         }
         actions={
-          isAdmin &&
-          passport && (
+          passport &&
+          (canEdit || canDelete) && (
             <>
-              <Button variant="secondary" onClick={() => setConfirmDelete(true)}>
-                <Trash2 />
-                Delete
-              </Button>
-              <Button asChild>
-                <Link href={`/passports/${passport.id}/edit`}>
-                  <Pencil />
-                  Edit
-                </Link>
-              </Button>
+              {canDelete && (
+                <Button variant="secondary" onClick={() => setConfirmDelete(true)}>
+                  <Trash2 />
+                  Delete
+                </Button>
+              )}
+              {canEdit && (
+                <Button asChild>
+                  <Link href={`/passports/${passport.id}/edit`}>
+                    <Pencil />
+                    Edit
+                  </Link>
+                </Button>
+              )}
             </>
           )
         }
       />
 
-      {isLoading || !passport ? <DetailSkeleton /> : <PassportDetail passport={passport} isAdmin={isAdmin} />}
+      {isLoading || !passport ? <DetailSkeleton /> : <PassportDetail passport={passport} />}
 
       <DeletePassportDialog
         passport={confirmDelete && passport ? passport : null}

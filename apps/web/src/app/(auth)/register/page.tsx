@@ -10,7 +10,7 @@ import { useForm } from 'react-hook-form';
 import { AuthFormError } from '@/components/auth/auth-form-error';
 import { GoogleSignIn } from '@/components/auth/google-sign-in';
 import { Button } from '@/components/ui/button';
-import { Field, Input, Select, fieldAria } from '@/components/ui/form-controls';
+import { Field, Input, fieldAria } from '@/components/ui/form-controls';
 import { Card } from '@/components/ui/surface';
 import { ApiError, authApi } from '@/lib/api-client';
 
@@ -26,7 +26,7 @@ export default function RegisterPage() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { email: '', password: '', role: 'user' },
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = async (values: RegisterInput) => {
@@ -48,7 +48,7 @@ export default function RegisterPage() {
     <Card className="p-6 sm:p-7">
       <h1 className="text-lg font-semibold tracking-tight text-ink">Create an account</h1>
       <p className="mt-1 text-[13px] text-ink-muted">
-        Admins manage passports and documents; users have read access.
+        New accounts have read access. An administrator can grant more access later.
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-4" noValidate>
@@ -71,12 +71,6 @@ export default function RegisterPage() {
             {...fieldAria('password', errors.password?.message, 'At least 8 characters.')}
             {...register('password')}
           />
-        </Field>
-        <Field id="role" label="Role" error={errors.role?.message}>
-          <Select invalid={!!errors.role} {...fieldAria('role', errors.role?.message)} {...register('role')}>
-            <option value="user">User — view passports and documents</option>
-            <option value="admin">Admin — manage passports and documents</option>
-          </Select>
         </Field>
         <Button type="submit" className="mt-2 w-full" loading={isSubmitting}>
           {isSubmitting ? 'Creating account…' : 'Create account'}

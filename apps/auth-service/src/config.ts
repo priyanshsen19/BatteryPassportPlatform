@@ -10,6 +10,9 @@ const envSchema = commonEnvSchema.extend({
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
   // Optional: Google sign-in is disabled when no OAuth client id is configured.
   GOOGLE_CLIENT_ID: z.string().optional(),
+  // Optional: creates (or promotes) the first administrator at startup.
+  BOOTSTRAP_ADMIN_EMAIL: z.string().trim().toLowerCase().optional(),
+  BOOTSTRAP_ADMIN_PASSWORD: z.string().optional(),
 });
 
 const env = loadEnv(envSchema);
@@ -29,6 +32,10 @@ export const config = {
   },
   bcryptSaltRounds: env.BCRYPT_SALT_ROUNDS,
   google: { clientId: env.GOOGLE_CLIENT_ID || undefined },
+  bootstrapAdmin: {
+    email: env.BOOTSTRAP_ADMIN_EMAIL || undefined,
+    password: env.BOOTSTRAP_ADMIN_PASSWORD || undefined,
+  },
 } as const;
 
 export const logger = createLogger(config.serviceName, {

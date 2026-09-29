@@ -13,6 +13,8 @@ export const dynamic = 'force-dynamic';
 const SERVICES = {
   passports: { env: 'PASSPORT_SERVICE_URL', prefix: '/api/passports' },
   documents: { env: 'DOCUMENT_SERVICE_URL', prefix: '/api/documents' },
+  // User and role management (admin only; enforced by the auth service).
+  users: { env: 'AUTH_SERVICE_URL', prefix: '/api/auth/users' },
 } as const;
 
 type RouteContext = { params: Promise<{ service: string; path?: string[] }> };
@@ -54,4 +56,4 @@ async function forward(request: NextRequest, { params }: RouteContext) {
 }
 
 const handler = withJsonErrors(forward);
-export { handler as GET, handler as POST, handler as PUT, handler as DELETE };
+export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };

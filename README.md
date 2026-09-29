@@ -49,9 +49,13 @@ Captured from the running Docker Compose stack with sample data.
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | ![Document list with upload](docs/screenshots/documents.png) | ![Image preview served through a short-lived S3 link](docs/screenshots/document-preview.png) |
 
-| Edit passport form                                              | Sign in                                       | Mobile                                                            |
-| --------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
-| ![Structured passport form](docs/screenshots/passport-form.png) | ![Sign-in screen](docs/screenshots/login.png) | ![Passport card on a phone](docs/screenshots/mobile-passport.png) |
+| User roles (admin only)                                                 | Edit passport form                                              |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------- |
+| ![Admin page for assigning user roles](docs/screenshots/user-roles.png) | ![Structured passport form](docs/screenshots/passport-form.png) |
+
+| Sign in                                       | Mobile                                                            |
+| --------------------------------------------- | ----------------------------------------------------------------- |
+| ![Sign-in screen](docs/screenshots/login.png) | ![Passport card on a phone](docs/screenshots/mobile-passport.png) |
 
 ## Architecture
 
@@ -132,8 +136,9 @@ the seed script outside Docker (`corepack enable` installs the pinned pnpm versi
 cp .env.example .env
 ```
 
-Set `JWT_SECRET` (at least 32 characters, e.g. `openssl rand -base64 48`) and replace
-`replace-with-a-local-password` in the three MongoDB URIs and `MONGO_ROOT_PASSWORD`. Then:
+Set `JWT_SECRET` (at least 32 characters, e.g. `openssl rand -base64 48`), replace
+`replace-with-a-local-password` in the three MongoDB URIs and `MONGO_ROOT_PASSWORD`, and choose a
+`BOOTSTRAP_ADMIN_PASSWORD` for the first admin account (`BOOTSTRAP_ADMIN_EMAIL`). Then:
 
 ```bash
 docker compose up --build -d
@@ -152,15 +157,17 @@ each service also retries its own connections, so the stack is usable once all c
 | http://localhost:4003/docs   | Document service Swagger UI            |
 | http://localhost:4004/health | Notification service health (loopback) |
 
-Create demo accounts (optional; you can also register in the UI):
+Sign in with the bootstrap admin from `.env`. Optionally create demo accounts for the other
+roles:
 
 ```bash
 corepack enable && pnpm install && pnpm seed
 ```
 
-This registers `admin@batterypassport.local` / `AdminPassw0rd!` (admin) and
-`viewer@batterypassport.local` / `ViewerPassw0rd!` (user) through the public API. These
-credentials are for local demonstration only; override them with `SEED_*` variables.
+This registers `developer@batterypassport.local` / `DeveloperPassw0rd!`,
+`tester@batterypassport.local` / `TesterPassw0rd!` and `viewer@batterypassport.local` /
+`ViewerPassw0rd!` through the public API, then signs in as the bootstrap admin to give the first
+two the developer and tester roles. These credentials are for local demonstration only.
 
 Watch notifications arrive:
 
@@ -203,31 +210,32 @@ All variables are documented in [.env.example](.env.example). Docker Compose map
 service; every service validates its own variables with Zod on start-up and refuses to start if
 one is missing or invalid.
 
-| Variable                                                                                                    | Used by                               | Description                                                        |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------ |
-| `NODE_ENV`, `LOG_LEVEL`                                                                                     | all                                   | Runtime mode and Winston level                                     |
-| `CORS_ORIGINS`                                                                                              | auth, passport, document              | Comma-separated allowed browser origins, or `*`                    |
-| `AUTH_SERVICE_PORT` … `WEB_PORT`                                                                            | compose                               | Host ports                                                         |
-| `JWT_SECRET`                                                                                                | auth                                  | HMAC secret, ≥ 32 characters; only the auth service has it         |
-| `JWT_EXPIRES_IN`                                                                                            | auth                                  | Token lifetime (default `1h`)                                      |
-| `BCRYPT_SALT_ROUNDS`                                                                                        | auth                                  | bcrypt work factor (default 12)                                    |
-| `MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD`                                                                | mongodb                               | Local MongoDB root user                                            |
-| `AUTH_MONGODB_URI`, `PASSPORT_MONGODB_URI`, `DOCUMENT_MONGODB_URI`                                          | respective service (as `MONGODB_URI`) | One database per service                                           |
-| `KAFKA_BROKERS`                                                                                             | passport, notification                | Bootstrap servers                                                  |
-| `KAFKA_GROUP_ID`                                                                                            | notification                          | Consumer group                                                     |
-| `KAFKA_SSL`, `KAFKA_SASL_MECHANISM`, `KAFKA_SASL_USERNAME`, `KAFKA_SASL_PASSWORD`                           | passport, notification                | For hosted Kafka                                                   |
-| `AWS_REGION`, `AWS_S3_BUCKET`                                                                               | document                              | Bucket location                                                    |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                                                                | document                              | Optional; the SDK default chain (e.g. IAM role) is used when unset |
-| `AWS_S3_ENDPOINT`, `AWS_S3_PUBLIC_ENDPOINT`, `AWS_S3_FORCE_PATH_STYLE`                                      | document                              | LocalStack only; leave empty for AWS                               |
-| `DOWNLOAD_URL_TTL_SECONDS`                                                                                  | document                              | Pre-signed URL lifetime (default 300)                              |
-| `AUTH_SERVICE_URL`                                                                                          | passport, document, web               | Internal auth service URL                                          |
-| `PASSPORT_SERVICE_URL`                                                                                      | document, web                         | Internal passport service URL                                      |
-| `DOCUMENT_SERVICE_URL`                                                                                      | web                                   | Internal document service URL                                      |
-| `SESSION_COOKIE_SECURE`                                                                                     | web                                   | `true` when served over HTTPS                                      |
-| `GOOGLE_CLIENT_ID`                                                                                          | auth, web                             | Optional Google OAuth client id; Google sign-in is off when empty  |
-| `GOOGLE_CLIENT_SECRET`                                                                                      | web                                   | Optional Google OAuth client secret                                |
-| `PUBLIC_APP_URL`                                                                                            | web                                   | Public URL of the web app, used for the OAuth redirect URI         |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `NOTIFICATION_EMAIL_TO` | notification                          | Optional email delivery; logging only when `SMTP_HOST` is empty    |
+| Variable                                                                                                    | Used by                               | Description                                                                                       |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`, `LOG_LEVEL`                                                                                     | all                                   | Runtime mode and Winston level                                                                    |
+| `CORS_ORIGINS`                                                                                              | auth, passport, document              | Comma-separated allowed browser origins, or `*`                                                   |
+| `AUTH_SERVICE_PORT` … `WEB_PORT`                                                                            | compose                               | Host ports                                                                                        |
+| `JWT_SECRET`                                                                                                | auth                                  | HMAC secret, ≥ 32 characters; only the auth service has it                                        |
+| `JWT_EXPIRES_IN`                                                                                            | auth                                  | Token lifetime (default `1h`)                                                                     |
+| `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`                                                         | auth                                  | First admin account, created (or promoted) at startup; the password is only used when creating it |
+| `BCRYPT_SALT_ROUNDS`                                                                                        | auth                                  | bcrypt work factor (default 12)                                                                   |
+| `MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD`                                                                | mongodb                               | Local MongoDB root user                                                                           |
+| `AUTH_MONGODB_URI`, `PASSPORT_MONGODB_URI`, `DOCUMENT_MONGODB_URI`                                          | respective service (as `MONGODB_URI`) | One database per service                                                                          |
+| `KAFKA_BROKERS`                                                                                             | passport, notification                | Bootstrap servers                                                                                 |
+| `KAFKA_GROUP_ID`                                                                                            | notification                          | Consumer group                                                                                    |
+| `KAFKA_SSL`, `KAFKA_SASL_MECHANISM`, `KAFKA_SASL_USERNAME`, `KAFKA_SASL_PASSWORD`                           | passport, notification                | For hosted Kafka                                                                                  |
+| `AWS_REGION`, `AWS_S3_BUCKET`                                                                               | document                              | Bucket location                                                                                   |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                                                                | document                              | Optional; the SDK default chain (e.g. IAM role) is used when unset                                |
+| `AWS_S3_ENDPOINT`, `AWS_S3_PUBLIC_ENDPOINT`, `AWS_S3_FORCE_PATH_STYLE`                                      | document                              | LocalStack only; leave empty for AWS                                                              |
+| `DOWNLOAD_URL_TTL_SECONDS`                                                                                  | document                              | Pre-signed URL lifetime (default 300)                                                             |
+| `AUTH_SERVICE_URL`                                                                                          | passport, document, web               | Internal auth service URL                                                                         |
+| `PASSPORT_SERVICE_URL`                                                                                      | document, web                         | Internal passport service URL                                                                     |
+| `DOCUMENT_SERVICE_URL`                                                                                      | web                                   | Internal document service URL                                                                     |
+| `SESSION_COOKIE_SECURE`                                                                                     | web                                   | `true` when served over HTTPS                                                                     |
+| `GOOGLE_CLIENT_ID`                                                                                          | auth, web                             | Optional Google OAuth client id; Google sign-in is off when empty                                 |
+| `GOOGLE_CLIENT_SECRET`                                                                                      | web                                   | Optional Google OAuth client secret                                                               |
+| `PUBLIC_APP_URL`                                                                                            | web                                   | Public URL of the web app, used for the OAuth redirect URI                                        |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `NOTIFICATION_EMAIL_TO` | notification                          | Optional email delivery; logging only when `SMTP_HOST` is empty                                   |
 
 The frontend needs no `NEXT_PUBLIC_*` variables: the browser only talks to the Next.js server,
 which reaches the services with the server-side URLs above.
@@ -280,22 +288,24 @@ Validation failures (`422 VALIDATION_ERROR`) include `details: [{ "field", "mess
 
 ### Auth service (`:4001`)
 
-| Method | Path                 | Auth    | Description                          |
-| ------ | -------------------- | ------- | ------------------------------------ |
-| POST   | `/api/auth/register` | public  | `{ email, password, role }` → `201`  |
-| POST   | `/api/auth/login`    | public  | `{ email, password }` → JWT          |
-| POST   | `/api/auth/google`   | public  | `{ idToken }` (Google) → JWT         |
-| GET    | `/api/auth/me`       | any JWT | Current user; used by other services |
+| Method | Path                       | Auth    | Description                                        |
+| ------ | -------------------------- | ------- | -------------------------------------------------- |
+| POST   | `/api/auth/register`       | public  | `{ email, password }` → `201`; always role `user`  |
+| POST   | `/api/auth/login`          | public  | `{ email, password }` → JWT                        |
+| POST   | `/api/auth/google`         | public  | `{ idToken }` (Google) → JWT                       |
+| GET    | `/api/auth/me`             | any JWT | Current user; used by other services               |
+| GET    | `/api/auth/users`          | admin   | Users with roles and sign-in methods (`q`, `role`) |
+| PATCH  | `/api/auth/users/:id/role` | admin   | `{ role }`; admins cannot change their own role    |
 
 ### Passport service (`:4002`)
 
-| Method | Path                 | Roles       | Description                                     |
-| ------ | -------------------- | ----------- | ----------------------------------------------- |
-| POST   | `/api/passports`     | admin       | Create; emits `passport.created`                |
-| GET    | `/api/passports/:id` | admin, user | Retrieve                                        |
-| PUT    | `/api/passports/:id` | admin       | Replace passport data; emits `passport.updated` |
-| DELETE | `/api/passports/:id` | admin       | Delete; emits `passport.deleted`                |
-| GET    | `/api/passports`     | admin, user | Paginated list, used by the UI (see below)      |
+| Method | Path                 | Roles            | Description                                     |
+| ------ | -------------------- | ---------------- | ----------------------------------------------- |
+| POST   | `/api/passports`     | admin, developer | Create; emits `passport.created`                |
+| GET    | `/api/passports/:id` | all roles        | Retrieve                                        |
+| PUT    | `/api/passports/:id` | admin, developer | Replace passport data; emits `passport.updated` |
+| DELETE | `/api/passports/:id` | admin            | Delete; emits `passport.deleted`                |
+| GET    | `/api/passports`     | all roles        | Paginated list, used by the UI (see below)      |
 
 `GET /api/passports` accepts `page`, `limit`, `q` (case-insensitive search across battery
 identifier, model and manufacturer; matched literally), `category`, `status`, `sort`
@@ -305,13 +315,13 @@ rejected with `422`.
 
 ### Document service (`:4003`)
 
-| Method | Path                    | Roles       | Description                                                                             |
-| ------ | ----------------------- | ----------- | --------------------------------------------------------------------------------------- |
-| POST   | `/api/documents/upload` | admin       | `multipart/form-data`: `file`, optional `passportId` → `{ docId, fileName, createdAt }` |
-| GET    | `/api/documents/:docId` | admin, user | Metadata and a pre-signed download URL (`expiresIn: 300`)                               |
-| PUT    | `/api/documents/:docId` | admin       | Update metadata (`fileName`, `passportId`)                                              |
-| DELETE | `/api/documents/:docId` | admin       | Delete the S3 object and its metadata                                                   |
-| GET    | `/api/documents`        | admin, user | Paginated list, optional `passportId` filter, used by the UI                            |
+| Method | Path                    | Roles            | Description                                                                             |
+| ------ | ----------------------- | ---------------- | --------------------------------------------------------------------------------------- |
+| POST   | `/api/documents/upload` | admin, developer | `multipart/form-data`: `file`, optional `passportId` → `{ docId, fileName, createdAt }` |
+| GET    | `/api/documents/:docId` | all roles        | Metadata and a pre-signed download URL (`expiresIn: 300`)                               |
+| PUT    | `/api/documents/:docId` | admin, developer | Update metadata (`fileName`, `passportId`)                                              |
+| DELETE | `/api/documents/:docId` | admin            | Delete the S3 object and its metadata                                                   |
+| GET    | `/api/documents`        | all roles        | Paginated list, optional `passportId` filter, used by the UI                            |
 
 Uploads accept PDF, PNG, JPEG, WebP, plain text, CSV, JSON, DOCX and XLSX up to 10 MB.
 `GET /api/documents/:docId?disposition=inline` returns a link the browser can display (used for
@@ -321,11 +331,9 @@ downloads.
 ### Example session
 
 ```bash
-# Register and log in
-curl -s -X POST localhost:4001/api/auth/register -H 'content-type: application/json' \
-  -d '{"email":"admin@example.com","password":"Str0ngPassw0rd","role":"admin"}'
+# Log in as the bootstrap admin (BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD in .env)
 TOKEN=$(curl -s -X POST localhost:4001/api/auth/login -H 'content-type: application/json' \
-  -d '{"email":"admin@example.com","password":"Str0ngPassw0rd"}' | jq -r .data.token)
+  -d '{"email":"admin@batterypassport.local","password":"<BOOTSTRAP_ADMIN_PASSWORD>"}' | jq -r .data.token)
 
 # Create a passport
 curl -s -X POST localhost:4002/api/passports -H "authorization: Bearer $TOKEN" \
@@ -369,14 +377,28 @@ Validation accepts battery categories `EV`, `LMT`, `Industrial`, `SLI`, `Portabl
 - Passwords are hashed with bcrypt (work factor 12 by default) and never returned or logged.
 - Login returns an HS256 JWT containing only `sub` (user id), `email` and `role`, with issuer,
   audience and expiry (`1h`) checked on verification.
-- `authenticateJWT` and `requireRole(...roles)` live in `packages/shared`. The auth service
-  verifies tokens locally; the passport and document services verify them over HTTP through the
-  auth service and then apply `requireRole`.
-- Roles: **admin** creates, updates and deletes passports and documents; **user** reads
-  passports and downloads documents. Permissions are enforced by the services; the UI only
-  mirrors them.
-- Registration accepts `admin` or `user` as the assignment specifies. In a real deployment, admin
-  accounts would be provisioned rather than self-registered.
+- `authenticateJWT`, `requireRole(...roles)` and `requirePermission(permission)` live in
+  `packages/shared`. The auth service verifies tokens locally; the passport and document services
+  verify them over HTTP through the auth service and then check the permission.
+- Permissions are defined once in `packages/shared` (`PERMISSIONS`), enforced by every service and
+  mirrored by the web UI:
+
+  | Permission                                             | admin | developer | tester | user |
+  | ------------------------------------------------------ | :---: | :-------: | :----: | :--: |
+  | View passports, preview and download documents         |   ✓   |     ✓     |   ✓    |  ✓   |
+  | Create and edit passports, upload and rename documents |   ✓   |     ✓     |        |      |
+  | Delete passports and documents                         |   ✓   |           |        |      |
+  | Manage user roles (User roles page)                    |   ✓   |           |        |      |
+
+- **Every new account is a `user`**, whether it registers with a password or signs in with Google;
+  a `role` sent to `/api/auth/register` is ignored. Admins assign roles on the **User roles** page
+  (`PATCH /api/auth/users/:id/role`). Role changes apply on the user's next request, because each
+  token is re-checked against the stored role. Admins cannot change their own role, so the
+  platform always keeps at least one admin.
+- **The first admin** comes from configuration: at startup the auth service creates the account in
+  `BOOTSTRAP_ADMIN_EMAIL` with `BOOTSTRAP_ADMIN_PASSWORD`, or promotes it if it already exists
+  (its password is never changed). `pnpm seed` then creates demo developer, tester and viewer
+  accounts and assigns their roles through the admin API.
 
 ### Google sign-in (optional)
 
@@ -521,7 +543,9 @@ web services built from this repository, with health checks and a generated `JWT
    | web                      | `PUBLIC_APP_URL`       | URL of `bpp-web`              |
    | auth, passport, document | `CORS_ORIGINS`         | URL of `bpp-web`              |
 
-4. **Redeploy** the affected services, then create accounts through the web app or `POST /api/auth/register`.
+4. **Redeploy** the affected services. Sign in with the `BOOTSTRAP_ADMIN_EMAIL` /
+   `BOOTSTRAP_ADMIN_PASSWORD` you gave `bpp-auth-service`; everyone else registers as a `user` and
+   gets other roles from you on the **User roles** page.
 
 Notes:
 

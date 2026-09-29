@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { PageTransition } from '@/components/layout/page-transition';
 import { PassportForm } from '@/components/passports/passport-form';
 import { PageHeader } from '@/components/ui/surface';
-import { AdminOnly } from '@/components/passports/admin-only';
+import { RequirePermission } from '@/components/auth/require-permission';
 
 export default function NewPassportPage() {
   return (
@@ -23,9 +23,12 @@ export default function NewPassportPage() {
         title="New battery passport"
         description="All fields are required unless marked otherwise."
       />
-      <AdminOnly>
+      <RequirePermission
+        permission="passport:write"
+        description="Only administrators and developers can create or edit battery passports."
+      >
         <PassportForm />
-      </AdminOnly>
+      </RequirePermission>
     </PageTransition>
   );
 }

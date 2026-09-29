@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { PageTransition } from '@/components/layout/page-transition';
-import { AdminOnly } from '@/components/passports/admin-only';
+import { RequirePermission } from '@/components/auth/require-permission';
 import { PassportForm } from '@/components/passports/passport-form';
 import { Card, ErrorState, PageHeader, Skeleton } from '@/components/ui/surface';
 import { usePassport } from '@/lib/queries';
@@ -27,7 +27,10 @@ export default function EditPassportPage() {
         }
         title="Edit battery passport"
       />
-      <AdminOnly>
+      <RequirePermission
+        permission="passport:write"
+        description="Only administrators and developers can create or edit battery passports."
+      >
         {isLoading ? (
           <Skeleton className="h-96 w-full" />
         ) : isError ? (
@@ -37,7 +40,7 @@ export default function EditPassportPage() {
         ) : (
           passport && <PassportForm passport={passport} />
         )}
-      </AdminOnly>
+      </RequirePermission>
     </PageTransition>
   );
 }

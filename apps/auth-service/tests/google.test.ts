@@ -64,7 +64,8 @@ describe('POST /api/auth/google', () => {
   it('links to an existing password account with the same email and keeps its role', async () => {
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'admin@example.com', password: 'AdminPassw0rd', role: 'admin' });
+      .send({ email: 'admin@example.com', password: 'AdminPassw0rd' });
+    await UserModel.updateOne({ email: 'admin@example.com' }, { $set: { role: 'admin' } });
 
     const res = await googleLogin('google:g-admin:admin@example.com');
     expect(res.status).toBe(200);

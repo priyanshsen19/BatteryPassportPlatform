@@ -1,17 +1,47 @@
 import { z } from 'zod';
 
-export const ROLES = ['admin', 'user'] as const;
+export const ROLES = ['admin', 'developer', 'tester', 'user'] as const;
 export type Role = (typeof ROLES)[number];
+
+/**
+ * Single source of truth for what each role may do; enforced by the services and mirrored by
+ * the web UI. New self-registered and Google accounts always start as `user`.
+ */
+export const PERMISSIONS = {
+  'passport:read': ['admin', 'developer', 'tester', 'user'],
+  'passport:write': ['admin', 'developer'],
+  'passport:delete': ['admin'],
+  'document:read': ['admin', 'developer', 'tester', 'user'],
+  'document:write': ['admin', 'developer'],
+  'document:delete': ['admin'],
+  'user:manage': ['admin'],
+} as const satisfies Record<string, readonly Role[]>;
+
+export type Permission = keyof typeof PERMISSIONS;
+
+export function hasPermission(role: Role | undefined, permission: Permission): boolean {
+  return role !== undefined && (PERMISSIONS[permission] as readonly Role[]).includes(role);
+}
+
+export const ROLE_DESCRIPTIONS: Record<Role, string> = {
+  admin: 'Full access, including deleting records and managing user roles',
+  developer: 'Create and edit passports, upload and rename documents',
+  tester: 'Read-only access to passports and documents',
+  user: 'Read-only access to passports and documents',
+};
 
 const emailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email('Enter a valid email address'));
 
+/**
+ * Self-registration never chooses a role: every new account is a `user`, and only an admin
+ * can promote it. A `role` sent by a client is stripped and ignored.
+ */
 export const registerSchema = z.object({
   email: emailSchema,
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
     .max(128, 'Password must be at most 128 characters'),
-  role: z.enum(ROLES, { error: "Role must be either 'admin' or 'user'" }).default('user'),
 });
 
 export const loginSchema = z.object({
@@ -37,6 +67,34 @@ export interface UserDto extends AuthUser {
   createdAt: string;
   updatedAt: string;
 }
+
+export const SIGN_IN_METHODS = ['password', 'google'] as const;
+export type SignInMethod = (typeof SIGN_IN_METHODS)[number];
+
+/** A user as shown to administrators on the user roles page. */
+export interface ManagedUserDto extends UserDto {
+  signInMethods: SignInMethod[];
+}
+
+/** Query parameters of GET /api/auth/users (admin only). */
+export const listUsersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  q: z
+    .string()
+    .trim()
+    .max(254)
+    .optional()
+    .transform((value) => value || undefined),
+  role: z.enum(ROLES).optional(),
+});
+
+/** Body of PATCH /api/auth/users/:id/role (admin only). */
+export const updateUserRoleSchema = z.strictObject({
+  role: z.enum(ROLES, { error: `Role must be one of: ${ROLES.join(', ')}` }),
+});
+
+export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
 
 export interface LoginResult {
   token: string;

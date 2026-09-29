@@ -8,7 +8,7 @@ import { PageTransition } from '@/components/layout/page-transition';
 import { Field, Select } from '@/components/ui/form-controls';
 import { Pagination } from '@/components/ui/pagination';
 import { Card, EmptyState, ErrorState, PageHeader, Section } from '@/components/ui/surface';
-import { useDocuments, useIsAdmin, usePassports } from '@/lib/queries';
+import { useCan, useDocuments, usePassports } from '@/lib/queries';
 
 const PAGE_SIZE = 20;
 
@@ -51,7 +51,7 @@ function UploadSection() {
 
 export default function DocumentsPage() {
   const [page, setPage] = useState(1);
-  const isAdmin = useIsAdmin();
+  const canUpload = useCan('document:write');
   const { data, isLoading, isError, error, refetch, isPlaceholderData } = useDocuments({
     page,
     limit: PAGE_SIZE,
@@ -69,7 +69,7 @@ export default function DocumentsPage() {
       />
 
       <div className="flex flex-col gap-5">
-        {isAdmin && <UploadSection />}
+        {canUpload && <UploadSection />}
 
         <Card className="overflow-hidden">
           {isLoading ? (
@@ -78,7 +78,7 @@ export default function DocumentsPage() {
             <ErrorState message={error.message} onRetry={() => refetch()} />
           ) : data && data.items.length > 0 ? (
             <div className={isPlaceholderData ? 'opacity-60 transition-opacity' : undefined}>
-              <DocumentList documents={data.items} isAdmin={isAdmin} showPassport />
+              <DocumentList documents={data.items} showPassport />
               <Pagination
                 page={page}
                 limit={PAGE_SIZE}
@@ -92,7 +92,7 @@ export default function DocumentsPage() {
               icon={<FileText />}
               title="No documents yet"
               description={
-                isAdmin
+                canUpload
                   ? 'Upload a file above to store it securely.'
                   : 'Documents uploaded by an administrator will appear here.'
               }

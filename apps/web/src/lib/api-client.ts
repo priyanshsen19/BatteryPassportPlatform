@@ -58,6 +58,7 @@ export const api = {
   get: <T>(path: string) => request<T>(`/api/proxy${path}`),
   post: <T>(path: string, body: unknown) => request<T>(`/api/proxy${path}`, json('POST', body)),
   put: <T>(path: string, body: unknown) => request<T>(`/api/proxy${path}`, json('PUT', body)),
+  patch: <T>(path: string, body: unknown) => request<T>(`/api/proxy${path}`, json('PATCH', body)),
   delete: <T>(path: string) => request<T>(`/api/proxy${path}`, { method: 'DELETE' }),
 };
 

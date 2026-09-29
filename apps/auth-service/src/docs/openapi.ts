@@ -11,7 +11,7 @@ const userSchema = {
   properties: {
     id: { type: 'string', example: '6700f1c2a7d4e5f601234567' },
     email: { type: 'string', format: 'email', example: 'admin@example.com' },
-    role: { type: 'string', enum: ['admin', 'user'], example: 'admin' },
+    role: { type: 'string', enum: ['admin', 'developer', 'tester', 'user'], example: 'admin' },
   },
 };
 
@@ -25,7 +25,7 @@ export const openApiSpec = {
       'Other services call `GET /api/auth/me` over HTTP to verify tokens and resolve the caller role.',
   },
   servers: [{ url: 'http://localhost:4001' }],
-  tags: [{ name: 'Auth' }, { name: 'Health' }],
+  tags: [{ name: 'Auth' }, { name: 'Users' }, { name: 'Health' }],
   components: {
     securitySchemes: bearerAuthScheme,
     schemas: { Error: errorEnvelopeSchema, User: userSchema },
@@ -35,7 +35,8 @@ export const openApiSpec = {
       post: {
         tags: ['Auth'],
         summary: 'Register a user',
-        description: 'Public. `role` must be `admin` or `user` (defaults to `user`).',
+        description:
+          'Public. Every new account gets the `user` role; a `role` in the body is ignored. Admins assign other roles with `PATCH /api/auth/users/{id}/role`.',
         security: [],
         requestBody: {
           required: true,
@@ -47,10 +48,9 @@ export const openApiSpec = {
                 properties: {
                   email: { type: 'string', format: 'email' },
                   password: { type: 'string', minLength: 8, maxLength: 128 },
-                  role: { type: 'string', enum: ['admin', 'user'], default: 'user' },
                 },
               },
-              example: { email: 'admin@example.com', password: 'Str0ngPassw0rd', role: 'admin' },
+              example: { email: 'new.user@example.com', password: 'Str0ngPassw0rd' },
             },
           },
         },
@@ -61,8 +61,8 @@ export const openApiSpec = {
             {
               user: {
                 id: '6700f1c2a7d4e5f601234567',
-                email: 'admin@example.com',
-                role: 'admin',
+                email: 'new.user@example.com',
+                role: 'user',
                 createdAt: '2024-10-05T10:00:00.000Z',
                 updatedAt: '2024-10-05T10:00:00.000Z',
               },
@@ -161,6 +161,73 @@ export const openApiSpec = {
             { user: { id: '6700f1c2a7d4e5f601234567', email: 'admin@example.com', role: 'admin' } },
           ),
           ...errorResponses(401),
+        },
+      },
+    },
+    '/api/auth/users': {
+      get: {
+        tags: ['Users'],
+        summary: 'List users and their roles',
+        description: 'Role: **admin**. Supports `q` (email search) and `role` filters.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
+          { name: 'q', in: 'query', schema: { type: 'string' } },
+          {
+            name: 'role',
+            in: 'query',
+            schema: { type: 'string', enum: ['admin', 'developer', 'tester', 'user'] },
+          },
+        ],
+        responses: {
+          200: successResponse(
+            'Paginated users',
+            { type: 'object' },
+            {
+              items: [
+                {
+                  id: '6700f1c2a7d4e5f601234567',
+                  email: 'dev@example.com',
+                  role: 'developer',
+                  signInMethods: ['password', 'google'],
+                  createdAt: '2024-10-05T10:00:00.000Z',
+                  updatedAt: '2024-10-05T10:00:00.000Z',
+                },
+              ],
+              page: 1,
+              limit: 20,
+              total: 1,
+            },
+          ),
+          ...errorResponses(401, 403, 422),
+        },
+      },
+    },
+    '/api/auth/users/{id}/role': {
+      patch: {
+        tags: ['Users'],
+        summary: "Change a user's role",
+        description:
+          "Role: **admin**. Takes effect on the user's next request. Admins cannot change their own role (400 `CANNOT_CHANGE_OWN_ROLE`).",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['role'],
+                properties: { role: { type: 'string', enum: ['admin', 'developer', 'tester', 'user'] } },
+              },
+              example: { role: 'developer' },
+            },
+          },
+        },
+        responses: {
+          200: successResponse('Updated user', { $ref: '#/components/schemas/User' }),
+          ...errorResponses(400, 401, 403, 404, 422),
         },
       },
     },

@@ -67,7 +67,8 @@ export const openApiSpec = {
       post: {
         tags: ['Documents'],
         summary: 'Upload a file',
-        description: 'Role: **admin**. Stored at `documents/{passportId}/{uuid}-{sanitizedFileName}`.',
+        description:
+          'Roles: **admin**, **developer**. Stored at `documents/{passportId}/{uuid}-{sanitizedFileName}`.',
         requestBody: {
           required: true,
           content: {
@@ -104,7 +105,7 @@ export const openApiSpec = {
       get: {
         tags: ['Documents'],
         summary: 'List document metadata',
-        description: 'Roles: **admin**, **user**. Optionally filter by passport.',
+        description: 'All roles. Optionally filter by passport.',
         parameters: [
           { name: 'passportId', in: 'query', schema: str },
           { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
@@ -134,7 +135,7 @@ export const openApiSpec = {
         tags: ['Documents'],
         summary: 'Get a downloadable file link',
         description:
-          'Roles: **admin**, **user**. Returns a pre-signed S3 GET URL valid for `expiresIn` seconds. ' +
+          'All roles. Returns a pre-signed S3 GET URL valid for `expiresIn` seconds. ' +
           '`disposition=inline` returns a link the browser can display (PDFs and images only; other types ' +
           'are always served as attachments).',
         parameters: [
@@ -170,7 +171,7 @@ export const openApiSpec = {
         tags: ['Documents'],
         summary: 'Update file metadata',
         description:
-          'Role: **admin**. Updates `fileName` and/or `passportId`; the stored object is not replaced.',
+          'Roles: **admin**, **developer**. Updates `fileName` and/or `passportId`; the stored object is not replaced.',
         requestBody: {
           required: true,
           content: {
@@ -194,7 +195,7 @@ export const openApiSpec = {
       delete: {
         tags: ['Documents'],
         summary: 'Delete a file',
-        description: 'Role: **admin**. Deletes the S3 object, then its metadata.',
+        description: 'Role: **admin** only. Deletes the S3 object, then its metadata.',
         responses: {
           200: successResponse(
             'Deleted',

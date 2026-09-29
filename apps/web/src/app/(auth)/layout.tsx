@@ -6,7 +6,7 @@ import { ThemeToggle } from '@/components/layout/theme-toggle';
 const HIGHLIGHTS = [
   { icon: QrCode, text: 'A scannable digital passport for every battery' },
   { icon: FileLock2, text: 'Certificates and reports stored privately in S3' },
-  { icon: ShieldCheck, text: 'Role-based access for administrators and viewers' },
+  { icon: ShieldCheck, text: 'Role-based access for admins, developers, testers and viewers' },
 ];
 
 export default function AuthLayout({ children }: { children: ReactNode }) {

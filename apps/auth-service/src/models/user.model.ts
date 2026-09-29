@@ -1,4 +1,4 @@
-import { ROLES, type Role, type UserDto } from '@bpp/shared';
+import { ROLES, type ManagedUserDto, type Role, type SignInMethod, type UserDto } from '@bpp/shared';
 import { Schema, model, type HydratedDocument } from 'mongoose';
 
 export interface UserAttributes {
@@ -42,4 +42,12 @@ export function toUserDto(user: UserDocument): UserDto {
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
+}
+
+/** Requires the document to be loaded with `+passwordHash`; the hash itself is never exposed. */
+export function toManagedUserDto(user: UserDocument): ManagedUserDto {
+  const signInMethods: SignInMethod[] = [];
+  if (user.passwordHash) signInMethods.push('password');
+  if (user.googleId) signInMethods.push('google');
+  return { ...toUserDto(user), signInMethods };
 }

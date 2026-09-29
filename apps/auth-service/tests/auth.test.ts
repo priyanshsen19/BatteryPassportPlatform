@@ -39,7 +39,7 @@ describe('POST /api/auth/register', () => {
     const res = await request(app).post('/api/auth/register').send(admin);
 
     expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({ success: true, data: { user: { email: admin.email, role: 'admin' } } });
+    expect(res.body).toMatchObject({ success: true, data: { user: { email: admin.email } } });
     expect(JSON.stringify(res.body)).not.toContain(admin.password);
 
     const stored = await UserModel.findOne({ email: admin.email }).select('+passwordHash');
@@ -63,15 +63,23 @@ describe('POST /api/auth/register', () => {
     expect(res.body).toMatchObject({ success: false, error: { code: 'EMAIL_ALREADY_REGISTERED' } });
   });
 
-  it('rejects an unknown role and invalid fields with 422', async () => {
+  it('always creates a user account, even when a client asks for admin', async () => {
+    const res = await request(app).post('/api/auth/register').send(admin);
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.user.role).toBe('user');
+    expect((await UserModel.findOne({ email: admin.email }))?.role).toBe('user');
+  });
+
+  it('rejects invalid fields with 422', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'not-an-email', password: 'short', role: 'superadmin' });
+      .send({ email: 'not-an-email', password: 'short' });
 
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
     expect(res.body.error.details.map((d: { field: string }) => d.field)).toEqual(
-      expect.arrayContaining(['email', 'password', 'role']),
+      expect.arrayContaining(['email', 'password']),
     );
   });
 
@@ -122,11 +130,11 @@ describe('POST /api/auth/login', () => {
 
 describe('GET /api/auth/me (JWT authentication)', () => {
   it('returns the authenticated user for a valid token', async () => {
-    const token = await registerAndLogin(admin);
+    const token = await registerAndLogin(user);
     const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.data.user).toMatchObject({ email: admin.email, role: 'admin' });
+    expect(res.body.data.user).toMatchObject({ email: user.email, role: 'user' });
   });
 
   it('returns 401 without a token', async () => {
