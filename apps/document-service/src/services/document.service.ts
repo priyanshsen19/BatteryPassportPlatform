@@ -44,7 +44,7 @@ const storageError = (operation: string, err: unknown, meta: Record<string, unkn
 export function createDocumentService(storage: ObjectStorage, passports: PassportClient) {
   async function findOrThrow(docId: string): Promise<DocumentRecord> {
     const doc = await documentRepository.findById(docId);
-    if (!doc) throw Errors.notFound('DOCUMENT_NOT_FOUND', `Document ${docId} not found`);
+    if (!doc) throw Errors.notFound('DOCUMENT_NOT_FOUND', 'Document not found');
     return doc;
   }
 
@@ -141,7 +141,7 @@ export function createDocumentService(storage: ObjectStorage, passports: Passpor
       }
 
       const updated = await documentRepository.updateMetadata(docId, changes);
-      if (!updated) throw Errors.notFound('DOCUMENT_NOT_FOUND', `Document ${docId} not found`);
+      if (!updated) throw Errors.notFound('DOCUMENT_NOT_FOUND', 'Document not found');
 
       logger.info('Document metadata updated', {
         docId,

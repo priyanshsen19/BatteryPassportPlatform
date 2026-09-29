@@ -75,10 +75,7 @@ export function PassportHeroCard({ passport }: { passport: PassportDto }) {
         </div>
       </div>
 
-      <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-dashed border-line bg-subtle/50 px-5 py-2.5 text-xs text-ink-subtle sm:px-6">
-        <span>
-          Record <span className="font-mono">{passport.id}</span>
-        </span>
+      <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-dashed border-line bg-subtle/50 px-5 py-2.5 text-xs text-ink-subtle sm:px-6">
         <span>Updated {formatDateTime(passport.updatedAt)}</span>
       </footer>
     </motion.article>

@@ -32,7 +32,7 @@ export function createPassportClient(options: {
       if (response.ok) return;
       if (response.status === 404) {
         throw Errors.validation([
-          { field: 'passportId', message: `Battery passport ${passportId} does not exist` },
+          { field: 'passportId', message: 'The selected battery passport does not exist' },
         ]);
       }
       options.logger.error('Passport service returned an unexpected status', {

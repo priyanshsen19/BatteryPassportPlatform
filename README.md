@@ -391,7 +391,7 @@ All responses share one envelope:
   "success": false,
   "error": {
     "code": "PASSPORT_NOT_FOUND",
-    "message": "Battery passport … not found",
+    "message": "Battery passport not found",
     "requestId": "…"
   }
 }

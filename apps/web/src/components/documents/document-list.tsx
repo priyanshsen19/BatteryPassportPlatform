@@ -11,10 +11,28 @@ import { ConfirmDialog } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/surface';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/table';
 import { ApiError } from '@/lib/api-client';
-import { downloadDocument, useCan, useDeleteDocument } from '@/lib/queries';
+import { downloadDocument, useCan, useDeleteDocument, usePassports } from '@/lib/queries';
 import { formatBytes, formatDate, mimeLabel } from '@/lib/utils';
 import { DocumentPreviewDialog, canPreview } from './document-preview-dialog';
 import { RenameDocumentDialog } from './rename-document-dialog';
+
+/**
+ * Shows the linked passport by its battery identifier, never its database id. Uses the same
+ * cached passport list as the upload form, so it adds no request per row.
+ */
+function PassportLink({ passportId }: { passportId: string }) {
+  const passports = usePassports({ limit: 100, sort: 'batteryIdentifier', order: 'asc' });
+  const identifier = passports.data?.items.find((p) => p.id === passportId)?.data.generalInformation
+    .batteryIdentifier;
+  return (
+    <Link
+      href={`/passports/${passportId}`}
+      className={`text-xs whitespace-nowrap text-ink-muted hover:text-accent ${identifier ? 'font-mono' : ''}`}
+    >
+      {identifier ?? 'View passport'}
+    </Link>
+  );
+}
 
 function FileIcon({ doc }: { doc: DocumentDto }) {
   const Icon = doc.mimeType.startsWith('image/') ? FileImage : FileText;
@@ -124,12 +142,7 @@ export function DocumentList({ documents, showPassport }: DocumentListProps) {
 
   const passportLink = (doc: DocumentDto) =>
     doc.passportId ? (
-      <Link
-        href={`/passports/${doc.passportId}`}
-        className="font-mono text-xs text-ink-muted hover:text-accent"
-      >
-        {doc.passportId.slice(-8)}
-      </Link>
+      <PassportLink passportId={doc.passportId} />
     ) : (
       <span className="text-xs text-ink-subtle">Unlinked</span>
     );

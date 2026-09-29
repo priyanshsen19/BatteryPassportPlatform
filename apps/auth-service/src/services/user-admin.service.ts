@@ -30,7 +30,7 @@ export const userAdminService = {
     }
 
     const user = await userRepository.updateRole(targetId, role);
-    if (!user) throw Errors.notFound('USER_NOT_FOUND', `User ${targetId} not found`);
+    if (!user) throw Errors.notFound('USER_NOT_FOUND', 'User not found');
 
     logger.info('User role changed', { userId: targetId, role, changedBy: actor.id, requestId });
     return toManagedUserDto(user);

@@ -321,8 +321,10 @@ check(
   up.status === 201 && !!docId && !!up.body.data.fileName && !!up.body.data.createdAt,
   up.text,
 );
-check('tester upload -> 201', (await upload(tokens.tester, 'tester file')).status === 201);
-check('developer upload -> 201', (await upload(tokens.developer, 'dev file')).status === 201);
+const testerUpload = await upload(tokens.tester, 'tester file');
+check('tester upload -> 201', testerUpload.status === 201);
+const devUpload = await upload(tokens.developer, 'dev file');
+check('developer upload -> 201', devUpload.status === 201);
 check('user upload -> 403', (await upload(tokens.user, 'user file')).status === 403);
 check('upload without token -> 401', (await upload(undefined, 'x')).status === 401);
 check(
@@ -562,6 +564,16 @@ for (let i = 0; i < 4; i += 1) {
 check('3 reset emails per address, then 429', resets.join(',') === '200,200,200,429', resets.join(','));
 
 // ---------------------------------------------------------------------------
+// Remove what this run created, so the local data stays tidy.
+for (const res of [testerUpload, devUpload]) {
+  if (res.body?.data?.docId)
+    await call('DELETE', `${DOC}/api/documents/${res.body.data.docId}`, { token: tokens.admin });
+}
+for (const res of [devCreate, testerCreate]) {
+  if (res.body?.data?.id)
+    await call('DELETE', `${PASS}/api/passports/${res.body.data.id}`, { token: tokens.admin });
+}
+
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
 if (failed.length) {

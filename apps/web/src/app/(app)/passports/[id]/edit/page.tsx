@@ -7,6 +7,7 @@ import { PageTransition } from '@/components/layout/page-transition';
 import { RequirePermission } from '@/components/auth/require-permission';
 import { PassportForm } from '@/components/passports/passport-form';
 import { Card, ErrorState, PageHeader, Skeleton } from '@/components/ui/surface';
+import { ApiError } from '@/lib/api-client';
 import { usePassport } from '@/lib/queries';
 
 export default function EditPassportPage() {
@@ -35,7 +36,14 @@ export default function EditPassportPage() {
           <Skeleton className="h-96 w-full" />
         ) : isError ? (
           <Card>
-            <ErrorState message={error.message} onRetry={() => refetch()} />
+            <ErrorState
+              message={
+                error instanceof ApiError && (error.status === 404 || error.status === 400)
+                  ? 'This passport does not exist. It may have been deleted.'
+                  : error.message
+              }
+              onRetry={() => refetch()}
+            />
           </Card>
         ) : (
           passport && <PassportForm passport={passport} />

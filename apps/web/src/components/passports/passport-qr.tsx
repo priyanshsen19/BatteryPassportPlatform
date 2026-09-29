@@ -93,12 +93,6 @@ export function PassportQr({ passportId, identifier, size = 104, className }: Pa
           <div className="rounded-xl bg-white p-4 ring-1 ring-black/5">
             <QrImage value={url} size={232} label={label} />
           </div>
-          <p
-            className="w-full truncate rounded-md bg-subtle px-3 py-2 text-center font-mono text-xs text-ink-muted"
-            title={url}
-          >
-            {url}
-          </p>
           <Button asChild className="w-full">
             <a href={url} aria-disabled={!url}>
               <ExternalLink />

@@ -17,7 +17,7 @@ export interface RequestContext {
   requestId: string;
 }
 
-const notFound = (id: string) => Errors.notFound('PASSPORT_NOT_FOUND', `Battery passport ${id} not found`);
+const notFound = () => Errors.notFound('PASSPORT_NOT_FOUND', 'Battery passport not found');
 
 const isDuplicateKeyError = (err: unknown) => (err as { code?: number } | null)?.code === 11000;
 
@@ -64,7 +64,7 @@ export function createPassportService(publisher: PassportEventPublisher) {
 
     async getById(id: string): Promise<PassportDto> {
       const passport = await passportRepository.findById(id);
-      if (!passport) throw notFound(id);
+      if (!passport) throw notFound();
       return toPassportDto(passport);
     },
 
@@ -77,7 +77,7 @@ export function createPassportService(publisher: PassportEventPublisher) {
       const passport: PassportDocument | null = await withDuplicateCheck(data, () =>
         passportRepository.replaceData(id, data, ctx.user.id),
       );
-      if (!passport) throw notFound(id);
+      if (!passport) throw notFound();
 
       logger.info('Passport updated', { passportId: id, requestId: ctx.requestId });
       await emit('passport.updated', id, ctx.requestId);
@@ -86,7 +86,7 @@ export function createPassportService(publisher: PassportEventPublisher) {
 
     async remove(id: string, ctx: RequestContext): Promise<{ id: string }> {
       const passport = await passportRepository.deleteById(id);
-      if (!passport) throw notFound(id);
+      if (!passport) throw notFound();
 
       logger.info('Passport deleted', { passportId: id, requestId: ctx.requestId });
       await emit('passport.deleted', id, ctx.requestId);
