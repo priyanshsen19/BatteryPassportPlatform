@@ -1,6 +1,7 @@
 import 'server-only';
 import { createHash, randomBytes } from 'crypto';
 import type { NextRequest } from 'next/server';
+import { log } from './log';
 
 export const OAUTH_COOKIE = 'bpp_google_oauth';
 const AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -13,12 +14,27 @@ export interface GoogleOAuthConfig {
 }
 
 /**
+ * Normalises PUBLIC_APP_URL as pasted into a hosting dashboard: trims whitespace, adds a
+ * missing https:// scheme and drops any path. Returns null (and logs) if it is unusable.
+ */
+function configuredOrigin(): string | null {
+  const raw = process.env.PUBLIC_APP_URL?.trim();
+  if (!raw) return null;
+  try {
+    return new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).origin;
+  } catch {
+    log('error', 'PUBLIC_APP_URL is not a valid URL; falling back to the request host', { value: raw });
+    return null;
+  }
+}
+
+/**
  * The origin users see. Inside a container `request.url` reflects the bind address
  * (e.g. 0.0.0.0:3000), so PUBLIC_APP_URL wins, then the forwarded/Host headers.
  */
 export function publicOrigin(request: NextRequest): string {
-  const configured = process.env.PUBLIC_APP_URL;
-  if (configured) return configured.replace(/\/$/, '');
+  const configured = configuredOrigin();
+  if (configured) return configured;
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
   const protocol = request.headers.get('x-forwarded-proto') ?? request.nextUrl.protocol.replace(':', '');
   return host ? `${protocol}://${host}` : request.nextUrl.origin;
@@ -26,8 +42,8 @@ export function publicOrigin(request: NextRequest): string {
 
 /** Google sign-in is optional: it is only enabled when both OAuth client settings are present. */
 export function googleConfig(request: NextRequest): GoogleOAuthConfig | null {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
   if (!clientId || !clientSecret) return null;
   return { clientId, clientSecret, redirectUri: `${publicOrigin(request)}/api/auth/google/callback` };
 }
@@ -75,8 +91,15 @@ export async function exchangeCodeForIdToken(
     }),
     signal: AbortSignal.timeout(10000),
   });
-  const body = (await response.json().catch(() => ({}))) as { id_token?: string; error?: string };
-  if (!response.ok || !body.id_token)
-    throw new Error(body.error ?? `Token exchange failed (${response.status})`);
+  const body = (await response.json().catch(() => ({}))) as {
+    id_token?: string;
+    error?: string;
+    error_description?: string;
+  };
+  if (!response.ok || !body.id_token) {
+    // e.g. invalid_client (wrong secret), redirect_uri_mismatch, invalid_grant (code reused/expired)
+    const reason = [body.error, body.error_description].filter(Boolean).join(': ');
+    throw new Error(`Google token exchange failed (${response.status})${reason ? ` ${reason}` : ''}`);
+  }
   return body.id_token;
 }

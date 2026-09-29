@@ -1,8 +1,8 @@
 import type { ApiResponse, LoginResult } from '@bpp/shared/schemas';
 import { NextResponse, type NextRequest } from 'next/server';
-import { callService, requiredEnv, setSessionCookie } from '@/lib/server/session';
+import { callService, requiredEnv, setSessionCookie, withJsonErrors } from '@/lib/server/session';
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const upstream = await callService(`${requiredEnv('AUTH_SERVICE_URL')}/api/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -17,3 +17,5 @@ export async function POST(request: NextRequest) {
   // The token itself stays server-side; the browser only learns who is signed in.
   return NextResponse.json({ success: true, data: { user: body.data.user } });
 }
+
+export const POST = withJsonErrors(handlePOST);

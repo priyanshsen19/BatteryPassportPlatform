@@ -5,12 +5,13 @@ import {
   errorResponse,
   getSessionToken,
   requiredEnv,
+  withJsonErrors,
 } from '@/lib/server/session';
 
 export const dynamic = 'force-dynamic';
 
 /** Resolves the signed-in user by verifying the session token with the Auth Service. */
-export async function GET() {
+async function handleGET() {
   const token = await getSessionToken();
   if (!token) return errorResponse(401, 'UNAUTHENTICATED', 'You are not signed in');
 
@@ -22,3 +23,5 @@ export async function GET() {
   if (upstream.status === 401) await clearSessionCookie();
   return NextResponse.json(await upstream.json(), { status: upstream.status });
 }
+
+export const GET = withJsonErrors(handleGET);

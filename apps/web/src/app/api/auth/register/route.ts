@@ -1,9 +1,9 @@
 import type { ApiResponse, LoginResult } from '@bpp/shared/schemas';
 import { NextResponse, type NextRequest } from 'next/server';
-import { callService, requiredEnv, setSessionCookie } from '@/lib/server/session';
+import { callService, requiredEnv, setSessionCookie, withJsonErrors } from '@/lib/server/session';
 
 /** Registers the account, then signs it in so the user lands directly in the app. */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const authUrl = requiredEnv('AUTH_SERVICE_URL');
   const payload = await request.text();
 
@@ -29,3 +29,5 @@ export async function POST(request: NextRequest) {
   await setSessionCookie(body.data.token);
   return NextResponse.json({ success: true, data: { user: body.data.user } }, { status: 201 });
 }
+
+export const POST = withJsonErrors(handlePOST);

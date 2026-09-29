@@ -2,15 +2,17 @@ import 'server-only';
 import type { ApiFailure } from '@bpp/shared/schemas';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { errorMessage, log } from './log';
 
 export const SESSION_COOKIE = 'bpp_session';
 
+/** Service base URL from the environment, tolerant of stray whitespace and trailing slashes. */
 export function requiredEnv(
   name: 'AUTH_SERVICE_URL' | 'PASSPORT_SERVICE_URL' | 'DOCUMENT_SERVICE_URL',
 ): string {
-  const value = process.env[name];
+  const value = process.env[name]?.trim();
   if (!value) throw new Error(`${name} is not configured`);
-  return value.replace(/\/$/, '');
+  return value.replace(/\/+$/, '');
 }
 
 /** Seconds until the JWT's exp claim, so the cookie never outlives the token. */
@@ -52,14 +54,36 @@ export function errorResponse(status: number, code: string, message: string): Ne
   return NextResponse.json({ success: false, error: { code, message } }, { status });
 }
 
-/** Calls a backend service, mapping network failures to a 502 envelope. */
+/**
+ * Wraps a route handler so unexpected errors (e.g. a missing service URL) are logged and
+ * returned as the standard JSON error envelope instead of an empty 500.
+ */
+export function withJsonErrors<Args extends unknown[]>(
+  handler: (...args: Args) => Promise<Response> | Response,
+): (...args: Args) => Promise<Response> {
+  return async (...args: Args) => {
+    try {
+      return await handler(...args);
+    } catch (err) {
+      log('error', 'Route handler failed', { error: errorMessage(err) });
+      return errorResponse(500, 'INTERNAL_ERROR', 'Something went wrong. Please try again.');
+    }
+  };
+}
+
+/**
+ * Calls a backend service, mapping network failures to a 502 envelope. The timeout is generous
+ * because services on free hosting tiers can take close to a minute to wake up.
+ */
 export async function callService(
   url: string,
   init: RequestInit,
+  timeoutMs = 60000,
 ): Promise<Response | NextResponse<ApiFailure>> {
   try {
-    return await fetch(url, { ...init, cache: 'no-store', signal: AbortSignal.timeout(30000) });
-  } catch {
+    return await fetch(url, { ...init, cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) });
+  } catch (err) {
+    log('error', 'Backend service request failed', { url, error: errorMessage(err) });
     return errorResponse(
       502,
       'SERVICE_UNAVAILABLE',

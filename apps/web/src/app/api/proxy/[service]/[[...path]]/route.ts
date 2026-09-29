@@ -1,6 +1,12 @@
 import { randomUUID } from 'crypto';
 import { NextResponse, type NextRequest } from 'next/server';
-import { callService, errorResponse, getSessionToken, requiredEnv } from '@/lib/server/session';
+import {
+  callService,
+  errorResponse,
+  getSessionToken,
+  requiredEnv,
+  withJsonErrors,
+} from '@/lib/server/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,4 +53,5 @@ async function forward(request: NextRequest, { params }: RouteContext) {
   });
 }
 
-export { forward as GET, forward as POST, forward as PUT, forward as DELETE };
+const handler = withJsonErrors(forward);
+export { handler as GET, handler as POST, handler as PUT, handler as DELETE };
