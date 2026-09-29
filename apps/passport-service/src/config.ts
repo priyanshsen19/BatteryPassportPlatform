@@ -1,4 +1,11 @@
-import { commonEnvSchema, createLogger, kafkaEnvSchema, loadEnv, parseCorsOrigins } from '@bpp/shared';
+import {
+  booleanString,
+  commonEnvSchema,
+  createLogger,
+  kafkaEnvSchema,
+  loadEnv,
+  parseCorsOrigins,
+} from '@bpp/shared';
 import { z } from 'zod';
 
 const envSchema = commonEnvSchema.extend(kafkaEnvSchema.shape).extend({
@@ -7,6 +14,8 @@ const envSchema = commonEnvSchema.extend(kafkaEnvSchema.shape).extend({
   AUTH_SERVICE_URL: z.url(),
   AUTH_SERVICE_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   KAFKA_CLIENT_ID: z.string().min(1).default('passport-service'),
+  // Adds ten sample passports at startup (only those not already present).
+  SEED_DEMO_DATA: booleanString(false),
 });
 
 const env = loadEnv(envSchema);
@@ -19,6 +28,7 @@ export const config = {
   corsOrigins: parseCorsOrigins(env.CORS_ORIGINS),
   authService: { baseUrl: env.AUTH_SERVICE_URL, timeoutMs: env.AUTH_SERVICE_TIMEOUT_MS },
   kafka: env,
+  seedDemoData: env.SEED_DEMO_DATA,
 } as const;
 
 export const logger = createLogger(config.serviceName, {

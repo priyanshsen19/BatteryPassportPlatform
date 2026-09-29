@@ -10,9 +10,15 @@ import {
 import { createApp } from './app';
 import { config, logger } from './config';
 import { KafkaPassportEventPublisher } from './events/passportEventPublisher';
+import { seedDemoPassports } from './seed/seed-demo-data';
 
 async function main(): Promise<void> {
   await connectMongo(config.mongoUri, logger);
+  if (config.seedDemoData) {
+    await seedDemoPassports(logger).catch((err: Error) =>
+      logger.error('Seeding demo passports failed', { error: err.message }),
+    );
+  }
 
   const publisher = new KafkaPassportEventPublisher(createKafkaClient(config.kafka, logger), logger);
   await publisher.connect();

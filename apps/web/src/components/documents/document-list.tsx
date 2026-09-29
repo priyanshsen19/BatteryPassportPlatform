@@ -27,7 +27,7 @@ interface DocumentListProps {
 }
 
 export function DocumentList({ documents, showPassport }: DocumentListProps) {
-  const canEdit = useCan('document:write');
+  const canEdit = useCan('document:update');
   const canDelete = useCan('document:delete');
   const [downloading, setDownloading] = useState<string | null>(null);
   const [toRename, setToRename] = useState<DocumentDto | null>(null);

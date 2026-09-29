@@ -49,7 +49,16 @@ function LoginForm() {
       <h1 className="text-lg font-semibold tracking-tight text-ink">Sign in</h1>
       <p className="mt-1 text-[13px] text-ink-muted">Access battery passports and their documents.</p>
 
-      {params.get('expired') && !formError && (
+      {params.get('reset') && !formError && (
+        <p
+          className="mt-4 rounded-md border border-line bg-subtle px-3 py-2.5 text-[13px] text-ink-muted"
+          role="status"
+        >
+          Your password has been updated. Sign in with your new password.
+        </p>
+      )}
+
+      {params.get('expired') && !params.get('reset') && !formError && (
         <p
           className="mt-4 rounded-md border border-line bg-subtle px-3 py-2.5 text-[13px] text-ink-muted"
           role="status"
@@ -79,6 +88,12 @@ function LoginForm() {
             {...register('password')}
           />
         </Field>
+        <Link
+          href="/forgot-password"
+          className="-mt-2 self-end text-[13px] font-medium text-accent underline-offset-4 hover:underline"
+        >
+          Forgot password?
+        </Link>
         <Button type="submit" className="mt-2 w-full" loading={isSubmitting}>
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </Button>

@@ -157,8 +157,9 @@ each service also retries its own connections, so the stack is usable once all c
 | http://localhost:4003/docs   | Document service Swagger UI            |
 | http://localhost:4004/health | Notification service health (loopback) |
 
-Sign in with the bootstrap admin from `.env`. Optionally create demo accounts for the other
-roles:
+Sign in with the bootstrap admin from `.env`. The passport service adds ten sample passports on
+start-up (`SEED_DEMO_DATA=true`; only identifiers that are not present yet are inserted, so edits
+and deletions are kept). Optionally create demo accounts for the other roles:
 
 ```bash
 corepack enable && pnpm install && pnpm seed
@@ -234,8 +235,10 @@ one is missing or invalid.
 | `SESSION_COOKIE_SECURE`                                                                                     | web                                   | `true` when served over HTTPS                                                                     |
 | `GOOGLE_CLIENT_ID`                                                                                          | auth, web                             | Optional Google OAuth client id; Google sign-in is off when empty                                 |
 | `GOOGLE_CLIENT_SECRET`                                                                                      | web                                   | Optional Google OAuth client secret                                                               |
-| `PUBLIC_APP_URL`                                                                                            | web                                   | Public URL of the web app, used for the OAuth redirect URI                                        |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `NOTIFICATION_EMAIL_TO` | notification                          | Optional email delivery; logging only when `SMTP_HOST` is empty                                   |
+| `PUBLIC_APP_URL`                                                                                            | auth, web                             | Public URL of the web app, used for the OAuth redirect URI and password reset links               |
+| `PASSWORD_RESET_TTL_MINUTES`                                                                                | auth                                  | Password reset link lifetime (default 30)                                                         |
+| `SEED_DEMO_DATA`                                                                                            | passport                              | Adds ten sample passports at start-up (default `true` in Compose)                                 |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `NOTIFICATION_EMAIL_TO` | auth, notification                    | Optional email delivery (reset links, notifications); logging only when `SMTP_HOST` is empty      |
 
 The frontend needs no `NEXT_PUBLIC_*` variables: the browser only talks to the Next.js server,
 which reaches the services with the server-side URLs above.
@@ -288,24 +291,26 @@ Validation failures (`422 VALIDATION_ERROR`) include `details: [{ "field", "mess
 
 ### Auth service (`:4001`)
 
-| Method | Path                       | Auth    | Description                                                     |
-| ------ | -------------------------- | ------- | --------------------------------------------------------------- |
-| POST   | `/api/auth/register`       | public  | `{ email, password, role? }` → `201`; `role` defaults to `user` |
-| POST   | `/api/auth/login`          | public  | `{ email, password }` → JWT                                     |
-| POST   | `/api/auth/google`         | public  | `{ idToken }` (Google) → JWT                                    |
-| GET    | `/api/auth/me`             | any JWT | Current user; used by other services                            |
-| GET    | `/api/auth/users`          | admin   | Users with roles and sign-in methods (`q`, `role`)              |
-| PATCH  | `/api/auth/users/:id/role` | admin   | `{ role }`; admins cannot change their own role                 |
+| Method | Path                        | Auth    | Description                                                                    |
+| ------ | --------------------------- | ------- | ------------------------------------------------------------------------------ |
+| POST   | `/api/auth/register`        | public  | `{ email, password, role? }` → `201`; `role` defaults to `user`                |
+| POST   | `/api/auth/login`           | public  | `{ email, password }` → JWT                                                    |
+| POST   | `/api/auth/google`          | public  | `{ idToken }` (Google) → JWT                                                   |
+| POST   | `/api/auth/forgot-password` | public  | `{ email }` → emails a single-use reset link; same response for unknown emails |
+| POST   | `/api/auth/reset-password`  | public  | `{ token, password }` → sets the password and signs out existing sessions      |
+| GET    | `/api/auth/me`              | any JWT | Current user; used by other services                                           |
+| GET    | `/api/auth/users`           | admin   | Users with roles and sign-in methods (`q`, `role`)                             |
+| PATCH  | `/api/auth/users/:id/role`  | admin   | `{ role }`; admins cannot change their own role                                |
 
 ### Passport service (`:4002`)
 
-| Method | Path                 | Roles            | Description                                     |
-| ------ | -------------------- | ---------------- | ----------------------------------------------- |
-| POST   | `/api/passports`     | admin, developer | Create; emits `passport.created`                |
-| GET    | `/api/passports/:id` | all roles        | Retrieve                                        |
-| PUT    | `/api/passports/:id` | admin, developer | Replace passport data; emits `passport.updated` |
-| DELETE | `/api/passports/:id` | admin            | Delete; emits `passport.deleted`                |
-| GET    | `/api/passports`     | all roles        | Paginated list, used by the UI (see below)      |
+| Method | Path                 | Roles                    | Description                                     |
+| ------ | -------------------- | ------------------------ | ----------------------------------------------- |
+| POST   | `/api/passports`     | admin, developer, tester | Create; emits `passport.created`                |
+| GET    | `/api/passports/:id` | all roles                | Retrieve                                        |
+| PUT    | `/api/passports/:id` | admin, developer         | Replace passport data; emits `passport.updated` |
+| DELETE | `/api/passports/:id` | admin                    | Delete; emits `passport.deleted`                |
+| GET    | `/api/passports`     | all roles                | Paginated list, used by the UI (see below)      |
 
 `GET /api/passports` accepts `page`, `limit`, `q` (case-insensitive search across battery
 identifier, model and manufacturer; matched literally), `category`, `status`, `sort`
@@ -315,13 +320,13 @@ rejected with `422`.
 
 ### Document service (`:4003`)
 
-| Method | Path                    | Roles            | Description                                                                             |
-| ------ | ----------------------- | ---------------- | --------------------------------------------------------------------------------------- |
-| POST   | `/api/documents/upload` | admin, developer | `multipart/form-data`: `file`, optional `passportId` → `{ docId, fileName, createdAt }` |
-| GET    | `/api/documents/:docId` | all roles        | Metadata and a pre-signed download URL (`expiresIn: 300`)                               |
-| PUT    | `/api/documents/:docId` | admin, developer | Update metadata (`fileName`, `passportId`)                                              |
-| DELETE | `/api/documents/:docId` | admin            | Delete the S3 object and its metadata                                                   |
-| GET    | `/api/documents`        | all roles        | Paginated list, optional `passportId` filter, used by the UI                            |
+| Method | Path                    | Roles                    | Description                                                                             |
+| ------ | ----------------------- | ------------------------ | --------------------------------------------------------------------------------------- |
+| POST   | `/api/documents/upload` | admin, developer, tester | `multipart/form-data`: `file`, optional `passportId` → `{ docId, fileName, createdAt }` |
+| GET    | `/api/documents/:docId` | all roles                | Metadata and a pre-signed download URL (`expiresIn: 300`)                               |
+| PUT    | `/api/documents/:docId` | admin, developer         | Update metadata (`fileName`, `passportId`)                                              |
+| DELETE | `/api/documents/:docId` | admin                    | Delete the S3 object and its metadata                                                   |
+| GET    | `/api/documents`        | all roles                | Paginated list, optional `passportId` filter, used by the UI                            |
 
 Uploads accept PDF, PNG, JPEG, WebP, plain text, CSV, JSON, DOCX and XLSX up to 10 MB.
 `GET /api/documents/:docId?disposition=inline` returns a link the browser can display (used for
@@ -383,12 +388,13 @@ Validation accepts battery categories `EV`, `LMT`, `Industrial`, `SLI`, `Portabl
 - Permissions are defined once in `packages/shared` (`PERMISSIONS`), enforced by every service and
   mirrored by the web UI:
 
-  | Permission                                             | admin | developer | tester | user |
-  | ------------------------------------------------------ | :---: | :-------: | :----: | :--: |
-  | View passports, preview and download documents         |   ✓   |     ✓     |   ✓    |  ✓   |
-  | Create and edit passports, upload and rename documents |   ✓   |     ✓     |        |      |
-  | Delete passports and documents                         |   ✓   |           |        |      |
-  | Manage user roles (User roles page)                    |   ✓   |           |        |      |
+  | Permission                                     | admin | developer | tester | user |
+  | ---------------------------------------------- | :---: | :-------: | :----: | :--: |
+  | View passports, preview and download documents |   ✓   |     ✓     |   ✓    |  ✓   |
+  | Create passports and upload documents          |   ✓   |     ✓     |   ✓    |      |
+  | Edit passports and rename documents            |   ✓   |     ✓     |        |      |
+  | Delete passports and documents                 |   ✓   |           |        |      |
+  | Manage user roles (User roles page)            |   ✓   |           |        |      |
 
 - **Registration follows the assignment:** `POST /api/auth/register` accepts an optional `role`
   (`admin`, `developer`, `tester` or `user`, default `user`), so API clients can register an admin
@@ -400,6 +406,22 @@ Validation accepts battery categories `EV`, `LMT`, `Industrial`, `SLI`, `Portabl
   `BOOTSTRAP_ADMIN_EMAIL` with `BOOTSTRAP_ADMIN_PASSWORD`, or promotes it if it already exists
   (its password is never changed). `pnpm seed` then creates demo developer, tester and viewer
   accounts and assigns their roles through the admin API.
+
+### Password reset
+
+1. **Forgot password?** on the sign-in page asks for the account email
+   (`POST /api/auth/forgot-password`). The response is identical whether or not the email is
+   registered, so it cannot be used to discover accounts.
+2. The auth service stores only a SHA-256 hash of a random 256-bit token and emails
+   `{PUBLIC_APP_URL}/reset-password?token=…`. The link expires after `PASSWORD_RESET_TTL_MINUTES`
+   (30 by default), works once, and a newer request replaces an older link.
+3. The reset page sets the new password (`POST /api/auth/reset-password`). Tokens issued before
+   the change are rejected (`TOKEN_REVOKED`), so every existing session is signed out. Accounts
+   created with Google can use this to add a password.
+
+Emails are sent with the `SMTP_*` settings on the auth service. Without `SMTP_HOST` (local
+development) the link is written to the auth-service log instead:
+`docker compose logs auth-service | grep resetUrl`.
 
 ### Google sign-in (optional)
 

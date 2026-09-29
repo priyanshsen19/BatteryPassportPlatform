@@ -55,6 +55,25 @@ export const userRepository = {
     return { items, total };
   },
 
+  setPasswordResetToken(id: string, tokenHash: string, expiresAt: Date): Promise<unknown> {
+    return UserModel.updateOne(
+      { _id: id },
+      { $set: { passwordResetTokenHash: tokenHash, passwordResetExpiresAt: expiresAt } },
+    ).exec();
+  },
+
+  /** Consumes a valid, unexpired reset token and sets the new password in one atomic update. */
+  resetPasswordWithToken(tokenHash: string, passwordHash: string): Promise<UserDocument | null> {
+    return UserModel.findOneAndUpdate(
+      { passwordResetTokenHash: tokenHash, passwordResetExpiresAt: { $gt: new Date() } },
+      {
+        $set: { passwordHash, passwordChangedAt: new Date() },
+        $unset: { passwordResetTokenHash: 1, passwordResetExpiresAt: 1 },
+      },
+      { new: true },
+    ).exec();
+  },
+
   updateRole(id: string, role: Role): Promise<UserDocument | null> {
     return UserModel.findByIdAndUpdate(id, { $set: { role } }, { new: true, runValidators: true })
       .select('+passwordHash')

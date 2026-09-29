@@ -71,5 +71,13 @@ export const authApi = {
     fetch('/api/auth/register', json('POST', body)).then((r) =>
       parseResponse<{ user: unknown }>(r, { redirectOn401: false }),
     ),
+  forgotPassword: (body: unknown) =>
+    fetch('/api/auth/forgot-password', json('POST', body)).then((r) =>
+      parseResponse<{ message: string }>(r, { redirectOn401: false }),
+    ),
+  resetPassword: (body: unknown) =>
+    fetch('/api/auth/reset-password', json('POST', body)).then((r) =>
+      parseResponse<{ message: string }>(r, { redirectOn401: false }),
+    ),
   logout: () => fetch('/api/auth/logout', { method: 'POST' }),
 };

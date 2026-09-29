@@ -1,8 +1,10 @@
 import {
+  forgotPasswordSchema,
   googleAuthSchema,
   loginSchema,
   registerSchema,
   requirePermission,
+  resetPasswordSchema,
   updateUserRoleSchema,
   validateBody,
   validateObjectIdParam,
@@ -16,6 +18,8 @@ export const authRouter = Router();
 authRouter.post('/register', validateBody(registerSchema), authController.register);
 authRouter.post('/login', validateBody(loginSchema), authController.login);
 authRouter.post('/google', validateBody(googleAuthSchema), authController.google);
+authRouter.post('/forgot-password', validateBody(forgotPasswordSchema), authController.forgotPassword);
+authRouter.post('/reset-password', validateBody(resetPasswordSchema), authController.resetPassword);
 authRouter.get('/me', authenticateJWT, authController.me);
 
 // User and role management: admins only.

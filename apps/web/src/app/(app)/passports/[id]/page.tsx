@@ -34,7 +34,7 @@ function DetailGrid({ children }: { children: ReactNode }) {
 }
 
 function PassportDocuments({ passportId }: { passportId: string }) {
-  const canUpload = useCan('document:write');
+  const canUpload = useCan('document:upload');
   const { data, isLoading, isError, error, refetch } = useDocuments({ passportId, limit: 100 });
 
   return (
@@ -206,7 +206,7 @@ function DetailSkeleton() {
 export default function PassportPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const canEdit = useCan('passport:write');
+  const canEdit = useCan('passport:update');
   const canDelete = useCan('passport:delete');
   const { data: passport, isLoading, isError, error, refetch } = usePassport(id);
   const [confirmDelete, setConfirmDelete] = useState(false);

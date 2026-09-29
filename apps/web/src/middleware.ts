@@ -1,13 +1,17 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 const SESSION_COOKIE = 'bpp_session';
-const PUBLIC_PATHS = ['/login', '/register'];
+// Signed-in users are sent from these to the dashboard.
+const PUBLIC_PATHS = ['/login', '/register', '/forgot-password'];
+// Reachable whether or not the visitor is signed in (a reset link can be opened anywhere).
+const OPEN_PATHS = ['/reset-password'];
 
 /** Routes signed-out visitors to the login page and signed-in users away from it. */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.has(SESSION_COOKIE);
   const isPublic = PUBLIC_PATHS.includes(pathname);
+  if (OPEN_PATHS.includes(pathname)) return NextResponse.next();
 
   if (!hasSession && !isPublic) {
     const url = new URL('/login', request.url);

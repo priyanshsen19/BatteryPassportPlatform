@@ -5,14 +5,16 @@ export type Role = (typeof ROLES)[number];
 
 /**
  * Single source of truth for what each role may do; enforced by the services and mirrored by
- * the web UI. New self-registered and Google accounts always start as `user`.
+ * the web UI. Accounts created in the web app or with Google start as `user`.
  */
 export const PERMISSIONS = {
   'passport:read': ['admin', 'developer', 'tester', 'user'],
-  'passport:write': ['admin', 'developer'],
+  'passport:create': ['admin', 'developer', 'tester'],
+  'passport:update': ['admin', 'developer'],
   'passport:delete': ['admin'],
   'document:read': ['admin', 'developer', 'tester', 'user'],
-  'document:write': ['admin', 'developer'],
+  'document:upload': ['admin', 'developer', 'tester'],
+  'document:update': ['admin', 'developer'],
   'document:delete': ['admin'],
   'user:manage': ['admin'],
 } as const satisfies Record<string, readonly Role[]>;
@@ -26,22 +28,21 @@ export function hasPermission(role: Role | undefined, permission: Permission): b
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   admin: 'Full access, including deleting records and managing user roles',
   developer: 'Create and edit passports, upload and rename documents',
-  tester: 'Read-only access to passports and documents',
+  tester: 'Create passports and upload documents; no editing or deleting',
   user: 'Read-only access to passports and documents',
 };
 
 const emailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email('Enter a valid email address'));
 
-/**
- * Self-registration never chooses a role: every new account is a `user`, and only an admin
- * can promote it. A `role` sent by a client is stripped and ignored.
- */
+const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(128, 'Password must be at most 128 characters');
+
+/** Registration body from the assignment: `role` is optional and defaults to `user`. */
 export const registerSchema = z.object({
   email: emailSchema,
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(128, 'Password must be at most 128 characters'),
+  password: passwordSchema,
   /** Optional, as in the assignment's register body; defaults to `user`. */
   role: z.enum(ROLES, { error: `Role must be one of: ${ROLES.join(', ')}` }).default('user'),
 });
@@ -53,6 +54,18 @@ export const loginSchema = z.object({
 
 export type RegisterInput = z.input<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+
+/** Body of POST /api/auth/forgot-password. */
+export const forgotPasswordSchema = z.object({ email: emailSchema });
+
+/** Body of POST /api/auth/reset-password: the token from the emailed link and the new password. */
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(20, 'The reset link is invalid').max(256, 'The reset link is invalid'),
+  password: passwordSchema,
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 /** Body of POST /api/auth/google: a Google ID token obtained through OAuth. */
 export const googleAuthSchema = z.object({

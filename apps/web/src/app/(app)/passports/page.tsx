@@ -64,7 +64,7 @@ function usePassportListState() {
 }
 
 function PassportsContent() {
-  const canCreate = useCan('passport:write');
+  const canCreate = useCan('passport:create');
   const { state, update } = usePassportListState();
   const { data, isLoading, isError, error, refetch, isPlaceholderData } = usePassports({
     q: state.q || undefined,

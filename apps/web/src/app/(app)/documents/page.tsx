@@ -51,7 +51,7 @@ function UploadSection() {
 
 export default function DocumentsPage() {
   const [page, setPage] = useState(1);
-  const canUpload = useCan('document:write');
+  const canUpload = useCan('document:upload');
   const { data, isLoading, isError, error, refetch, isPlaceholderData } = useDocuments({
     page,
     limit: PAGE_SIZE,

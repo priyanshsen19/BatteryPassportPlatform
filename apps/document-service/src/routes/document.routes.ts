@@ -16,7 +16,8 @@ export function createDocumentRouter(
 ): Router {
   const router = Router();
   const canRead = requirePermission('document:read');
-  const canWrite = requirePermission('document:write');
+  const canUpload = requirePermission('document:upload');
+  const canUpdate = requirePermission('document:update');
   const canDelete = requirePermission('document:delete');
   const validDocId = validateObjectIdParam('docId');
 
@@ -25,14 +26,14 @@ export function createDocumentRouter(
   router.get('/', canRead, controller.list);
   router.post(
     '/upload',
-    canWrite,
+    canUpload,
     uploadSingleFile(maxUploadSizeBytes),
     validateBody(uploadDocumentFieldsSchema),
     controller.upload,
   );
 
   router.get('/:docId', validDocId, canRead, controller.getDownload);
-  router.put('/:docId', validDocId, canWrite, validateBody(updateDocumentSchema), controller.update);
+  router.put('/:docId', validDocId, canUpdate, validateBody(updateDocumentSchema), controller.update);
   router.delete('/:docId', validDocId, canDelete, controller.remove);
 
   return router;

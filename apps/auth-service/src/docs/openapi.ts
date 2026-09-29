@@ -114,6 +114,69 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/auth/forgot-password': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Request a password reset link',
+        description:
+          'Public. Emails a single-use link to `{PUBLIC_APP_URL}/reset-password?token=…` that expires after `PASSWORD_RESET_TTL_MINUTES`. The response is the same whether or not the email is registered.',
+        security: [],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email'],
+                properties: { email: { type: 'string', format: 'email' } },
+              },
+              example: { email: 'user@example.com' },
+            },
+          },
+        },
+        responses: {
+          200: successResponse(
+            'Request accepted',
+            { type: 'object', properties: { message: { type: 'string' } } },
+            { message: 'If an account exists for this email, a password reset link has been sent.' },
+          ),
+          ...errorResponses(400, 422),
+        },
+      },
+    },
+    '/api/auth/reset-password': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Set a new password from a reset link',
+        description:
+          'Public. Consumes the token from the emailed link. Tokens issued before the reset are rejected afterwards (`TOKEN_REVOKED`), so every existing session is signed out.',
+        security: [],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['token', 'password'],
+                properties: {
+                  token: { type: 'string' },
+                  password: { type: 'string', minLength: 8, maxLength: 128 },
+                },
+              },
+              example: { token: 'rG3k…from-the-email-link', password: 'N3wStr0ngPassw0rd' },
+            },
+          },
+        },
+        responses: {
+          200: successResponse(
+            'Password updated',
+            { type: 'object', properties: { message: { type: 'string' } } },
+            { message: 'Your password has been updated. Sign in with your new password.' },
+          ),
+          ...errorResponses(400, 422),
+        },
+      },
+    },
     '/api/auth/google': {
       post: {
         tags: ['Auth'],

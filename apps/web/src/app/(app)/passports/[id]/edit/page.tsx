@@ -28,7 +28,7 @@ export default function EditPassportPage() {
         title="Edit battery passport"
       />
       <RequirePermission
-        permission="passport:write"
+        permission="passport:update"
         description="Only administrators and developers can create or edit battery passports."
       >
         {isLoading ? (

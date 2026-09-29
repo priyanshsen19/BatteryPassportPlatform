@@ -110,6 +110,11 @@ export const authService = {
     const claims = tokenService.verify(token);
     const user = await userRepository.findById(claims.sub);
     if (!user) throw Errors.unauthorized('The account for this token no longer exists', 'INVALID_TOKEN');
+    // A password reset ends every session that started before it.
+    const changedAt = user.passwordChangedAt ? Math.floor(user.passwordChangedAt.getTime() / 1000) : 0;
+    if (claims.iat !== undefined && claims.iat < changedAt) {
+      throw Errors.unauthorized('Your password was changed. Please sign in again.', 'TOKEN_REVOKED');
+    }
     return toAuthUser(user);
   },
 };

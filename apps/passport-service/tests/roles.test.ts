@@ -57,12 +57,16 @@ describe('tester role', () => {
     expect((await request(app).get(`/api/passports/${id}`).set(as('tester'))).status).toBe(200);
   });
 
-  it('cannot create, update or delete passports', async () => {
+  it('can create passports', async () => {
+    const res = await request(app).post('/api/passports').set(as('tester')).send(samplePassport('BP-T'));
+    expect(res.status).toBe(201);
+  });
+
+  it('cannot update or delete passports', async () => {
     const id = await existingPassportId();
-    const create = await request(app).post('/api/passports').set(as('tester')).send(samplePassport('BP-T'));
     const update = await request(app).put(`/api/passports/${id}`).set(as('tester')).send(samplePassport());
     const remove = await request(app).delete(`/api/passports/${id}`).set(as('tester'));
 
-    expect([create.status, update.status, remove.status]).toEqual([403, 403, 403]);
+    expect([update.status, remove.status]).toEqual([403, 403]);
   });
 });

@@ -8,19 +8,20 @@ export function createPassportRouter(
 ): Router {
   const router = Router();
   const canRead = requirePermission('passport:read');
-  const canWrite = requirePermission('passport:write');
+  const canCreate = requirePermission('passport:create');
+  const canUpdate = requirePermission('passport:update');
   const canDelete = requirePermission('passport:delete');
 
   router.use(authenticateJWT);
 
   router.get('/', canRead, controller.list);
-  router.post('/', canWrite, validateBody(passportRequestSchema), controller.create);
+  router.post('/', canCreate, validateBody(passportRequestSchema), controller.create);
 
   router.get('/:id', validateObjectIdParam('id'), canRead, controller.getById);
   router.put(
     '/:id',
     validateObjectIdParam('id'),
-    canWrite,
+    canUpdate,
     validateBody(passportRequestSchema),
     controller.update,
   );

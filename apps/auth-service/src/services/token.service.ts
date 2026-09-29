@@ -6,6 +6,8 @@ interface AccessTokenClaims {
   sub: string;
   email: string;
   role: Role;
+  /** Issued-at, in seconds since the epoch. */
+  iat?: number;
 }
 
 export const tokenService = {
@@ -36,6 +38,6 @@ export const tokenService = {
     if (typeof payload === 'string' || !payload.sub || !ROLES.includes(payload.role)) {
       throw Errors.unauthorized('Invalid token', 'INVALID_TOKEN');
     }
-    return { sub: payload.sub, email: payload.email, role: payload.role };
+    return { sub: payload.sub, email: payload.email, role: payload.role, iat: payload.iat };
   },
 };

@@ -53,7 +53,7 @@ function StatCard({ label, icon, value, detail, href, loading }: StatCardProps) 
 
 export default function DashboardPage() {
   const { data: user } = useSession();
-  const canCreate = useCan('passport:write');
+  const canCreate = useCan('passport:create');
   const passports = usePassports({ limit: 6, sort: 'createdAt', order: 'desc' });
   const documents = useDocuments({ limit: 1 });
 

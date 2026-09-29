@@ -24,7 +24,7 @@ export default function NewPassportPage() {
         description="All fields are required unless marked otherwise."
       />
       <RequirePermission
-        permission="passport:write"
+        permission="passport:create"
         description="Only administrators and developers can create or edit battery passports."
       >
         <PassportForm />

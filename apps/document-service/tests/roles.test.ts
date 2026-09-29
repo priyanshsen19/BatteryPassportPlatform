@@ -61,17 +61,20 @@ describe('tester role', () => {
     ).toBe(200);
   });
 
-  it('cannot upload, rename or delete documents', async () => {
+  it('can upload documents', async () => {
+    expect((await upload('tester')).status).toBe(201);
+  });
+
+  it('cannot rename or delete documents', async () => {
     const uploaded = await upload('admin');
     const docId = uploaded.body.data.docId as string;
 
-    const create = await upload('tester');
     const rename = await request(app)
       .put(`/api/documents/${docId}`)
       .set(as('tester'))
       .send({ fileName: 'x.pdf' });
     const remove = await request(app).delete(`/api/documents/${docId}`).set(as('tester'));
 
-    expect([create.status, rename.status, remove.status]).toEqual([403, 403, 403]);
+    expect([rename.status, remove.status]).toEqual([403, 403]);
   });
 });

@@ -67,7 +67,7 @@ function ColumnHeader({
 /** Table on medium+ screens, stacked rows on small screens. */
 export function PassportList({ passports, compact, sorting }: PassportListProps) {
   const router = useRouter();
-  const canEdit = useCan('passport:write');
+  const canEdit = useCan('passport:update');
   const canDelete = useCan('passport:delete');
   const [toDelete, setToDelete] = useState<PassportDto | null>(null);
   const showActions = !compact;

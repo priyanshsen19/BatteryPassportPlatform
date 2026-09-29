@@ -35,6 +35,18 @@ services:
         sync: false # first admin account, created or promoted at startup
       - key: BOOTSTRAP_ADMIN_PASSWORD
         sync: false # used only if that account does not exist yet
+      - key: PUBLIC_APP_URL
+        sync: false # https://bpp-web.onrender.com (password reset links)
+      - key: SMTP_HOST
+        sync: false # optional; without it reset links are only written to the log
+      - key: SMTP_PORT
+        sync: false # e.g. 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false # e.g. BatteryPass <no-reply@your-domain>
 
   - type: web
     name: bpp-passport-service
@@ -63,6 +75,8 @@ services:
         sync: false
       - key: KAFKA_SASL_PASSWORD
         sync: false
+      - key: SEED_DEMO_DATA
+        value: 'true' # adds ten sample passports that are not already present
 
   - type: web
     name: bpp-document-service

@@ -8,6 +8,11 @@ export interface UserAttributes {
   /** Google account id (`sub` claim), set once the account has signed in with Google. */
   googleId?: string;
   role: Role;
+  /** SHA-256 of the current password reset token; the token itself is only in the emailed link. */
+  passwordResetTokenHash?: string;
+  passwordResetExpiresAt?: Date;
+  /** Tokens issued before this moment are rejected, so a reset signs out every session. */
+  passwordChangedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +26,9 @@ const userSchema = new Schema<UserAttributes>(
     passwordHash: { type: String, select: false },
     googleId: { type: String, unique: true, sparse: true },
     role: { type: String, enum: ROLES, required: true, default: 'user' },
+    passwordResetTokenHash: { type: String, select: false, index: { sparse: true } },
+    passwordResetExpiresAt: { type: Date, select: false },
+    passwordChangedAt: { type: Date },
   },
   { timestamps: true, collection: 'users' },
 );
