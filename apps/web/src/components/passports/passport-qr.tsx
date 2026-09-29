@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Copy, Maximize2 } from 'lucide-react';
+import { Check, Copy, ExternalLink, Maximize2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -99,7 +99,12 @@ export function PassportQr({ passportId, identifier, size = 104, className }: Pa
           >
             {url}
           </p>
-          <CopyLinkButton url={url} className="w-full" />
+          <Button asChild className="w-full">
+            <a href={url} aria-disabled={!url}>
+              <ExternalLink />
+              Open passport
+            </a>
+          </Button>
         </div>
       </Dialog>
     </>
