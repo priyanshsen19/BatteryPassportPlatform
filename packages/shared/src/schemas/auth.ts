@@ -65,7 +65,6 @@ export const resetPasswordSchema = z.object({
 });
 
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
-export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 /** Body of POST /api/auth/google: a Google ID token obtained through OAuth. */
 export const googleAuthSchema = z.object({
@@ -108,8 +107,6 @@ export const listUsersQuerySchema = z.object({
 export const updateUserRoleSchema = z.strictObject({
   role: z.enum(ROLES, { error: `Role must be one of: ${ROLES.join(', ')}` }),
 });
-
-export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
 
 export interface LoginResult {
   token: string;

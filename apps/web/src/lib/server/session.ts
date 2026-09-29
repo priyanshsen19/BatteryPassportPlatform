@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { errorMessage, log } from './log';
 
-export const SESSION_COOKIE = 'bpp_session';
+const SESSION_COOKIE = 'bpp_session';
 
 /** Service base URL from the environment, tolerant of stray whitespace and trailing slashes. */
 export function requiredEnv(

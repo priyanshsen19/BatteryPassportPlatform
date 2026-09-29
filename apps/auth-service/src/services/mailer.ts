@@ -30,7 +30,7 @@ function smtpHint(err: unknown): string {
  * Sends password reset emails over SMTP. Without SMTP_HOST (local development) the link is
  * written to the service log instead, so the flow can still be completed.
  */
-export function createMailer(): Mailer {
+function createMailer(): Mailer {
   const smtp = config.smtp;
   if (!smtp) {
     return {

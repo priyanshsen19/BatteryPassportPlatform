@@ -22,7 +22,7 @@ import { useIsClient } from './hooks';
 /** Passport list parameters as accepted by GET /api/passports (all optional). */
 export type PassportListParams = Partial<Omit<PassportListQuery, 'q'>> & { q?: string };
 
-export const queryKeys = {
+const queryKeys = {
   session: ['session'] as const,
   passports: (params: PassportListParams) => ['passports', params] as const,
   passport: (id: string) => ['passport', id] as const,

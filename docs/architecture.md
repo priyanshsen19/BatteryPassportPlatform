@@ -59,8 +59,8 @@ references.
 - **Token verification.** The passport and document services do not know the JWT secret. For
   each request they call `GET /api/auth/me` on the auth service with the caller's bearer token.
   The auth service verifies the signature, issuer, audience and expiry, then re-reads the user so
-  that deleted accounts or changed roles take effect immediately. The returned
-  `{ id, email, role }` is attached to `req.user` and checked by `requireRole(...)`.
+  that deleted accounts, changed roles and password resets take effect immediately. The returned
+  `{ id, email, role }` is attached to `req.user` and checked by `requirePermission(...)`.
 - **Passport existence.** Before linking a document to a passport, the document service calls
   `GET /api/passports/:id` on the passport service, forwarding the caller's token.
 - All internal URLs come from environment variables (`AUTH_SERVICE_URL`,
@@ -68,6 +68,17 @@ references.
   followed through the logs of every service a request touches.
 - Failures map to explicit status codes: an unreachable dependency is `503`, an unexpected
   upstream response is `502`.
+
+## Roles and permissions
+
+- Four roles: `admin`, `developer`, `tester` and `user`. The assignment's `admin` and `user` keep
+  their meaning (admins write, users read); `developer` and `tester` sit in between.
+- A single `PERMISSIONS` table in `packages/shared` maps permissions such as `passport:create` or
+  `document:delete` to roles. Services protect each route with `requirePermission(...)`, and the
+  web UI uses the same table to hide actions a role cannot perform.
+- Roles are stored only in the auth service. Because every request is re-checked through
+  `GET /api/auth/me`, a role change applies on the user's next request, not when the token
+  expires.
 
 ## Asynchronous communication (Kafka)
 
@@ -114,6 +125,26 @@ use the same mechanism with an `inline` content disposition, issued only for PDF
 Passport search, filtering and sorting run in the passport service (MongoDB query with a
 case-insensitive collation), so results stay correct across pages. The list view keeps its state
 in the URL, and the ⌘K command bar reuses the same search endpoint.
+
+## Accounts
+
+- **Password reset.** The auth service stores only a SHA-256 hash of a random 256-bit token, with
+  an expiry (30 minutes by default); the plain token exists only in the emailed link. Consuming
+  the token is a single atomic update, so a link works once. A reset records
+  `passwordChangedAt`, and tokens issued before it are rejected, which signs out every session.
+- **Google sign-in.** The web server runs the OAuth authorization-code flow with PKCE; the auth
+  service verifies Google's ID token and issues the platform's own JWT, so the other services see
+  no difference.
+
+## Deployment
+
+- **Local:** Docker Compose runs MongoDB, Kafka (KRaft), LocalStack, the four services and the web
+  app, each in its own container on its own port; services reach each other by container name.
+- **Hosted:** the four services run as Docker web services on Render (Blueprint in `render.yaml`)
+  with MongoDB Atlas, AWS S3 and a hosted Kafka; the web app runs on Vercel.
+- Render's free services sleep when idle. The web app pings them on every visit and, while one
+  starts, recognises the platform's HTML 502 (the services always answer with JSON) and retries
+  for up to 50 seconds instead of failing.
 
 ## Cross-cutting concerns
 

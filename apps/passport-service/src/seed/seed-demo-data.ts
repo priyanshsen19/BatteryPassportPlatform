@@ -2,7 +2,7 @@ import type { Logger } from '@bpp/shared';
 import { PassportModel } from '../models/passport.model';
 import { DEMO_PASSPORTS } from './demo-passports';
 
-export const DEMO_CREATED_BY = 'demo-seed';
+const DEMO_CREATED_BY = 'demo-seed';
 
 /**
  * Inserts any sample passport whose battery identifier is not in the database yet. Safe to run on

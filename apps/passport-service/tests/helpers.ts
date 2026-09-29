@@ -9,10 +9,10 @@ import {
 } from '@bpp/shared';
 import type { PassportEventPublisher } from '../src/events/passportEventPublisher';
 
-export const ADMIN: AuthUser = { id: 'admin-1', email: 'admin@example.com', role: 'admin' };
-export const USER: AuthUser = { id: 'user-1', email: 'user@example.com', role: 'user' };
-export const DEVELOPER: AuthUser = { id: 'dev-1', email: 'dev@example.com', role: 'developer' };
-export const TESTER: AuthUser = { id: 'tester-1', email: 'tester@example.com', role: 'tester' };
+const ADMIN: AuthUser = { id: 'admin-1', email: 'admin@example.com', role: 'admin' };
+const USER: AuthUser = { id: 'user-1', email: 'user@example.com', role: 'user' };
+const DEVELOPER: AuthUser = { id: 'dev-1', email: 'dev@example.com', role: 'developer' };
+const TESTER: AuthUser = { id: 'tester-1', email: 'tester@example.com', role: 'tester' };
 
 /** Stands in for the auth service's GET /api/auth/me. */
 export const fakeVerifyToken: TokenVerifier = async (token) => {

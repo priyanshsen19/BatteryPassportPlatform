@@ -41,7 +41,7 @@ export function Select({ className, invalid, children, ...props }: SelectProps) 
   );
 }
 
-export function Label({ className, ...props }: ComponentProps<typeof LabelPrimitive.Root>) {
+function Label({ className, ...props }: ComponentProps<typeof LabelPrimitive.Root>) {
   return <LabelPrimitive.Root className={cn('text-[13px] font-medium text-ink', className)} {...props} />;
 }
 

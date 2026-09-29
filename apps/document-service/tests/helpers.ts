@@ -2,10 +2,10 @@ import { AppError, Errors, type AuthUser, type TokenVerifier } from '@bpp/shared
 import type { PassportClient } from '../src/clients/passportClient';
 import type { ObjectStorage, PutObjectInput } from '../src/storage/objectStorage';
 
-export const ADMIN: AuthUser = { id: 'admin-1', email: 'admin@example.com', role: 'admin' };
-export const USER: AuthUser = { id: 'user-1', email: 'user@example.com', role: 'user' };
-export const DEVELOPER: AuthUser = { id: 'dev-1', email: 'dev@example.com', role: 'developer' };
-export const TESTER: AuthUser = { id: 'tester-1', email: 'tester@example.com', role: 'tester' };
+const ADMIN: AuthUser = { id: 'admin-1', email: 'admin@example.com', role: 'admin' };
+const USER: AuthUser = { id: 'user-1', email: 'user@example.com', role: 'user' };
+const DEVELOPER: AuthUser = { id: 'dev-1', email: 'dev@example.com', role: 'developer' };
+const TESTER: AuthUser = { id: 'tester-1', email: 'tester@example.com', role: 'tester' };
 
 export const fakeVerifyToken: TokenVerifier = async (token) => {
   if (token === 'admin-token') return ADMIN;
