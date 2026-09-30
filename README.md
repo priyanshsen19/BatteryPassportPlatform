@@ -1,7 +1,6 @@
 # Battery Passport Platform
 
-A microservices backend for managing digital battery passports, built for the MEAtec backend
-assignment. It covers:
+A microservices backend for managing digital battery passports, built for the MEAtec. It covers:
 
 - user registration and JWT authentication with role-based access control
 - battery passport create, read, update and delete
@@ -9,7 +8,7 @@ assignment. It covers:
 - Kafka domain events consumed by a notification service
 - a web interface that demonstrates every flow
 
-> This is the simplified platform described in the assignment, not a certified implementation of
+> This is the simplified platform described, not a certified implementation of
 > the EU Battery Passport.
 
 ![Passport detail with the digital passport card and QR code](docs/screenshots/passport-detail.png)
