@@ -122,6 +122,11 @@ document files, and Redpanda Cloud for Kafka.
 
 ![Redpanda topic with passport events](docs/screenshots/live-kafka.png)
 
+**Email notification:** the notification service consumed the event and emailed it over SMTP
+(Brevo's relay, with the Brevo API as a fallback).
+
+![Notification email for a passport update](docs/screenshots/live-email.png)
+
 ## Architecture
 
 ```
