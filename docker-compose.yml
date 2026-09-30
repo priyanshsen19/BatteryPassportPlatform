@@ -182,6 +182,8 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-Battery Passport Platform <no-reply@battery-passport.local>}
       NOTIFICATION_EMAIL_TO: ${NOTIFICATION_EMAIL_TO:-}
+      # Mock email: notifications are also appended to this file inside the container
+      NOTIFICATION_FILE: ${NOTIFICATION_FILE:-/tmp/notifications.txt}
       BREVO_API_KEY: ${BREVO_API_KEY:-}
     # Health endpoint only, published on loopback for local inspection
     ports:

@@ -18,6 +18,8 @@ const envSchema = commonEnvSchema.extend(kafkaEnvSchema.shape).extend({
   NOTIFICATION_EMAIL_TO: recipientsSchema,
   // Optional: Brevo's HTTPS email API, used when SMTP is not configured or fails (e.g. blocked).
   BREVO_API_KEY: z.string().trim().optional(),
+  // Optional mock email: every notification is also appended to this text file.
+  NOTIFICATION_FILE: z.string().trim().optional(),
 });
 
 const env = loadEnv(envSchema);
@@ -33,6 +35,7 @@ export const config = {
   kafka: env,
   kafkaGroupId: env.KAFKA_GROUP_ID,
   emailMissing,
+  notificationFile: env.NOTIFICATION_FILE || undefined,
   email:
     hasProvider && env.NOTIFICATION_EMAIL_TO.length > 0
       ? {

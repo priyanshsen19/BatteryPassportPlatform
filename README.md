@@ -332,6 +332,8 @@ is configured)
 - `BREVO_API_KEY`: optional fallback through Brevo's HTTPS API, used when SMTP is not set or
   fails (some hosts block outbound SMTP).
 - `SMTP_FROM`: sender for both; with Brevo it must be a verified sender address.
+- `NOTIFICATION_FILE` (notification): mock email; every notification is also appended to this
+  text file (`/tmp/notifications.txt` in Compose).
 - `NOTIFICATION_EMAIL_TO` (notification): recipients of event notifications, separated by commas
   (e.g. `ops@example.com, lead@example.com`).
 
@@ -636,6 +638,12 @@ each message against this schema and logs, for example:
   "passportId": "…",
   "timestamp": "…"
 }
+```
+
+As a mock email, every notification is also appended to a text file (`NOTIFICATION_FILE`):
+
+```bash
+docker compose exec notification-service cat /tmp/notifications.txt
 ```
 
 With `NOTIFICATION_EMAIL_TO` and an email provider set, it also emails the notification: through

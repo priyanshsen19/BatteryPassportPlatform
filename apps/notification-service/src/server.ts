@@ -14,6 +14,7 @@ import { config, logger } from './config';
 import { PassportEventConsumer } from './consumer/passportEventConsumer';
 import { PassportEventHandler } from './consumer/passportEventHandler';
 import { EmailNotifier } from './notifications/emailNotifier';
+import { FileNotifier } from './notifications/fileNotifier';
 import { LogNotifier } from './notifications/logNotifier';
 import type { Notifier } from './notifications/notification';
 import { NotificationDispatcher } from './notifications/notificationDispatcher';
@@ -41,6 +42,7 @@ function createEmailDelivery(): EmailDelivery {
 
 function createNotifiers(delivery: EmailDelivery): Notifier[] {
   const notifiers: Notifier[] = [new LogNotifier(logger)];
+  if (config.notificationFile) notifiers.push(new FileNotifier(config.notificationFile, logger));
 
   if (config.email && delivery.enabled) {
     notifiers.push(new EmailNotifier(delivery, { from: config.email.from, to: config.email.to }, logger));

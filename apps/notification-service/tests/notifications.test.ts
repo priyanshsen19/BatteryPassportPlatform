@@ -1,3 +1,6 @@
+import { mkdtemp, readFile, rm } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import {
   EmailDelivery,
   brevoProvider,
@@ -8,6 +11,7 @@ import {
   type PassportEvent,
 } from '@bpp/shared';
 import { EmailNotifier } from '../src/notifications/emailNotifier';
+import { FileNotifier } from '../src/notifications/fileNotifier';
 import { LogNotifier } from '../src/notifications/logNotifier';
 import { buildNotification, type Notification, type Notifier } from '../src/notifications/notification';
 import { NotificationDispatcher } from '../src/notifications/notificationDispatcher';
@@ -147,6 +151,23 @@ describe('Brevo provider', () => {
     await expect(
       brevoProvider('bad').send({ from: 'a@example.com', to: ['b@example.com'], subject: 's', text: 't' }),
     ).rejects.toThrow('Brevo API returned HTTP 401: Key not found');
+  });
+});
+
+describe('FileNotifier', () => {
+  it('appends each notification to the text file like an email', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'bpp-notifications-'));
+    const file = join(dir, 'out', 'notifications.txt');
+    const notifier = new FileNotifier(file, silentLogger);
+
+    await notifier.send(buildNotification(createPassportEvent('passport.created', 'p-1')));
+    await notifier.send(buildNotification(createPassportEvent('passport.deleted', 'p-1')));
+
+    const content = await readFile(file, 'utf8');
+    expect(content).toContain('Subject: Battery passport created');
+    expect(content).toContain('Battery passport deleted: p-1');
+    expect(content.match(/^Subject:/gm)).toHaveLength(2);
+    await rm(dir, { recursive: true, force: true });
   });
 });
 
