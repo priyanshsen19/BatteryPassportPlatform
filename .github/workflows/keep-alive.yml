@@ -1,12 +1,16 @@
-# Wakes every Render backend service on demand (Actions → Keep alive → Run workflow), e.g. just
-# before a demo. Day to day this is not needed: the web app, on Vercel, pings the backends
-# whenever someone opens a page, and waits for them while they start.
+# Keeps the Render backend services awake by calling their health endpoints every 5 minutes
+# (Render's free instances sleep after 15 minutes without traffic), but only until the time in
+# the repository variable KEEP_ALIVE_UNTIL (ISO 8601, e.g. 2026-10-03T06:50:00Z). Scheduled runs
+# after that time do nothing, so free instance hours (750 a month per workspace) are only spent
+# during a review or demo window. Delete the variable to stop early.
 #
-# There is deliberately no schedule: free instance hours are shared by the whole Render workspace
-# (750 per month), which only covers one service around the clock.
+# "Run workflow" in the Actions tab wakes every service once at any time. Outside the window the
+# web app, on Vercel, wakes the backends whenever someone opens a page.
 name: Keep alive
 
 on:
+  schedule:
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions: {}
@@ -16,13 +20,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
+      UNTIL: ${{ vars.KEEP_ALIVE_UNTIL }}
       URLS: >-
         ${{ vars.KEEP_ALIVE_URLS || 'https://bpp-auth-service.onrender.com/health
         https://bpp-passport-service.onrender.com/health
         https://bpp-document-service.onrender.com/health
         https://bpp-notification-service.onrender.com/health' }}
     steps:
+      - name: Check the keep-alive window
+        id: window
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "active=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$UNTIL" ] && [ "$(date -u +%s)" -lt "$(date -u -d "$UNTIL" +%s)" ]; then
+            echo "Keeping services awake until $UNTIL"
+            echo "active=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Outside the keep-alive window (KEEP_ALIVE_UNTIL='${UNTIL}'); nothing to do"
+            echo "active=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Ping services
+        if: steps.window.outputs.active == 'true'
         run: |
           failed=0
           for url in $URLS; do

@@ -194,7 +194,7 @@ Every service has its own `package.json`, Dockerfile, configuration, tests and `
 ├── infrastructure/localstack/   # creates the private bucket in LocalStack
 ├── scripts/e2e.mjs              # end-to-end check against the Docker Compose stack
 ├── docs/                        # architecture, testing guide, screenshots
-├── .github/workflows/           # CI and the on-demand keep-alive job
+├── .github/workflows/           # CI and the keep-alive job
 ├── docker-compose.yml
 ├── render.yaml                  # Render Blueprint for the four services
 └── .env.example
@@ -798,7 +798,10 @@ shared package from the monorepo root.
   platform.
 - The notification service consumes Kafka only while awake; after waking it processes the events
   it missed from its committed offset.
-- **Actions → Keep alive → Run workflow** wakes every backend on demand, e.g. before a demo.
+- **Keep-alive window.** `.github/workflows/keep-alive.yml` pings every backend every 5 minutes
+  until the time in the repository variable `KEEP_ALIVE_UNTIL`, so the services stay awake during
+  a review or demo without spending free hours the rest of the month. **Actions → Keep alive → Run
+  workflow** wakes every backend once at any time.
 - Render re-applies fixed `value:` entries from `render.yaml` on every Blueprint sync, so
   account-specific settings (`AWS_REGION`, `KAFKA_SSL`, `KAFKA_SASL_MECHANISM`, …) are
   `sync: false` and keep their dashboard values.
