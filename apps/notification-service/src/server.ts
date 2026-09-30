@@ -1,4 +1,13 @@
-import { closeServer, createKafkaClient, registerGracefulShutdown, startHttpServer } from '@bpp/shared';
+import {
+  EmailDelivery,
+  brevoProvider,
+  closeServer,
+  createKafkaClient,
+  registerGracefulShutdown,
+  smtpProvider,
+  startHttpServer,
+  type EmailProvider,
+} from '@bpp/shared';
 import nodemailer from 'nodemailer';
 import { createApp } from './app';
 import { config, logger } from './config';
@@ -9,54 +18,36 @@ import { LogNotifier } from './notifications/logNotifier';
 import type { Notifier } from './notifications/notification';
 import { NotificationDispatcher } from './notifications/notificationDispatcher';
 
-/** `disabled`, `checking`, `up` (SMTP login verified) or `error` (see the log for the reason). */
-let emailStatus = 'disabled';
-
-/** Turns common SMTP failures into an actionable hint for the logs. */
-function smtpHint(err: unknown): string {
-  const e = err as { code?: string; responseCode?: number; message?: string };
-  if (e.code === 'EAUTH' || e.responseCode === 535) {
-    return 'SMTP login rejected: check SMTP_USER/SMTP_PASSWORD (for Gmail, use an App Password)';
+function createEmailDelivery(): EmailDelivery {
+  const email = config.email;
+  const providers: EmailProvider[] = [];
+  if (email?.smtp) {
+    providers.push(
+      smtpProvider(
+        nodemailer.createTransport({
+          ...email.smtp,
+          // Fail within seconds rather than Nodemailer's default of two minutes, so an
+          // unreachable SMTP server cannot hold up the events queued behind it.
+          connectionTimeout: 10_000,
+          greetingTimeout: 10_000,
+          socketTimeout: 20_000,
+        }),
+      ),
+    );
   }
-  if (e.code === 'ETIMEDOUT' || e.code === 'ECONNECTION' || e.code === 'ESOCKET') {
-    return 'SMTP server unreachable: check SMTP_HOST/SMTP_PORT/SMTP_SECURE and that outbound SMTP is allowed';
-  }
-  return e.message ?? String(err);
+  if (email?.brevoApiKey) providers.push(brevoProvider(email.brevoApiKey));
+  return new EmailDelivery(providers, logger);
 }
 
-function createNotifiers(): Notifier[] {
+function createNotifiers(delivery: EmailDelivery): Notifier[] {
   const notifiers: Notifier[] = [new LogNotifier(logger)];
 
-  if (config.smtp) {
-    const { from, to, ...transportOptions } = config.smtp;
-    const transporter = nodemailer.createTransport({
-      ...transportOptions,
-      // Fail within seconds rather than Nodemailer's default of two minutes, so an unreachable
-      // SMTP server cannot hold up the events queued behind it.
-      connectionTimeout: 10_000,
-      greetingTimeout: 10_000,
-      socketTimeout: 20_000,
-    });
-    notifiers.push(
-      new EmailNotifier(transporter, { from, to }, logger, (ok) => {
-        emailStatus = ok ? 'up' : 'error';
-      }),
-    );
-
-    // Checked in the background so a slow SMTP server never delays consuming events.
-    emailStatus = 'checking';
-    transporter
-      .verify()
-      .then(() => {
-        emailStatus = 'up';
-        logger.info('SMTP connection verified', { host: transportOptions.host, recipients: to.length });
-      })
-      .catch((err: unknown) => {
-        emailStatus = 'error';
-        logger.error('SMTP connection check failed', { host: transportOptions.host, hint: smtpHint(err) });
-      });
-  } else if (config.smtpMissing) {
-    logger.warn(`SMTP_HOST is set but ${config.smtpMissing} is empty: email notifications are off`);
+  if (config.email && delivery.enabled) {
+    notifiers.push(new EmailNotifier(delivery, { from: config.email.from, to: config.email.to }, logger));
+    // Checked in the background so a slow provider never delays consuming events.
+    void delivery.verify();
+  } else if (config.emailMissing) {
+    logger.warn(`Email is configured but ${config.emailMissing} is empty: email notifications are off`);
   }
 
   logger.info('Notification channels configured', { channels: notifiers.map((n) => n.channel) });
@@ -64,7 +55,11 @@ function createNotifiers(): Notifier[] {
 }
 
 async function main(): Promise<void> {
-  const handler = new PassportEventHandler(new NotificationDispatcher(createNotifiers(), logger), logger);
+  const delivery = createEmailDelivery();
+  const handler = new PassportEventHandler(
+    new NotificationDispatcher(createNotifiers(delivery), logger),
+    logger,
+  );
   const consumer = new PassportEventConsumer(
     createKafkaClient(config.kafka, logger),
     config.kafkaGroupId,
@@ -76,7 +71,7 @@ async function main(): Promise<void> {
   const server = await startHttpServer(
     createApp(
       () => consumer.isConnected(),
-      () => emailStatus,
+      () => delivery.health(),
     ),
     config.port,
     logger,

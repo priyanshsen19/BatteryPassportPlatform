@@ -325,9 +325,13 @@ one is missing or invalid.
 - `PUBLIC_APP_URL`: public URL, used for the Google OAuth redirect URI.
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: optional Google sign-in.
 
-**Email** (auth for reset links, notification for events; logging only when `SMTP_HOST` is empty)
+**Email** (auth for reset links, notification for events; logging only when neither SMTP nor Brevo
+is configured)
 
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`: SMTP delivery.
+- `BREVO_API_KEY`: optional fallback through Brevo's HTTPS API, used when SMTP is not set or
+  fails (some hosts block outbound SMTP).
+- `SMTP_FROM`: sender for both; with Brevo it must be a verified sender address.
 - `NOTIFICATION_EMAIL_TO` (notification): recipients of event notifications, separated by commas
   (e.g. `ops@example.com, lead@example.com`).
 
@@ -576,9 +580,9 @@ all visitors keeps the access code from being guessed from many addresses.
    the change are rejected (`TOKEN_REVOKED`), so every existing session ends. Accounts created
    with Google can use this to add a password.
 
-Emails use the `SMTP_*` settings of the auth service, which checks the SMTP login at start-up and
-logs the result. Without `SMTP_HOST` the link is written to the auth-service log instead
-(`docker compose logs auth-service | grep resetUrl`).
+Emails go through SMTP, falling back to Brevo (`BREVO_API_KEY`) if SMTP fails; the auth service
+checks both at start-up and logs the result. With neither configured, the link is written to the
+auth-service log instead (`docker compose logs auth-service | grep resetUrl`).
 
 ### Google sign-in (optional)
 
@@ -634,11 +638,12 @@ each message against this schema and logs, for example:
 }
 ```
 
-With `SMTP_HOST` and `NOTIFICATION_EMAIL_TO` set it also emails the notification with Nodemailer;
-an email failure is logged and does not stop the log notification. The service checks the SMTP
-login at start-up and reports the result of that check, then of the latest send, on `/health` as
-`"email": "up"`, `"error"` (the log says why) or `"disabled"`. SMTP attempts time out after
-seconds, so an unreachable mail server never holds up the events behind it.
+With `NOTIFICATION_EMAIL_TO` and an email provider set, it also emails the notification: through
+SMTP (Nodemailer) first and, if that fails, through Brevo's HTTPS API (`BREVO_API_KEY`). An email
+failure is logged and does not stop the log notification. `/health` reports `"email"` as `"up"`,
+`"error"` (the log says why) or `"disabled"`, with `"emailProvider"` naming the provider that sent
+the latest email. SMTP attempts time out after seconds, so an unreachable mail server never holds
+up the events behind it.
 
 ## Swagger documentation
 

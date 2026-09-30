@@ -50,6 +50,8 @@ services:
         sync: false
       - key: SMTP_FROM
         sync: false # e.g. BatteryPass <no-reply@your-domain>
+      - key: BREVO_API_KEY
+        sync: false # optional; email fallback over HTTPS when SMTP fails
 
   - type: web
     name: bpp-passport-service
@@ -144,3 +146,5 @@ services:
         sync: false # optional
       - key: NOTIFICATION_EMAIL_TO
         sync: false # optional; comma-separated, e.g. ops@example.com, lead@example.com
+      - key: BREVO_API_KEY
+        sync: false # optional; email fallback over HTTPS when SMTP fails

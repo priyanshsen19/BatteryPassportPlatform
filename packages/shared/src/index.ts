@@ -13,3 +13,4 @@ export * from './kafka/client';
 export * from './runtime/env';
 export * from './runtime/lifecycle';
 export * from './runtime/mongo';
+export * from './email/delivery';

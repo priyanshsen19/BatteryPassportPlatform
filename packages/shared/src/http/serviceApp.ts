@@ -45,6 +45,14 @@ export function createServiceApp(options: ServiceAppOptions): Express {
   app.use(helmet());
   app.use(express.json({ limit: options.jsonBodyLimit ?? '100kb' }));
 
+  // Hosting platforms and browsers probe these; answer instead of logging a 404.
+  app.get('/', (_req, res) => {
+    res.json({ service: options.serviceName, health: '/health', ...(openApiSpec && { docs: '/docs' }) });
+  });
+  app.get('/favicon.ico', (_req, res) => {
+    res.status(204).end();
+  });
+
   app.get('/health', (_req, res) => {
     const dependencies = options.healthChecks?.() ?? {};
     const healthy = Object.values(dependencies).every((status) => status !== 'down');

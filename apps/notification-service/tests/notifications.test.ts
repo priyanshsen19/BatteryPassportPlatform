@@ -1,5 +1,12 @@
-import { createLogger, createPassportEvent, type PassportEvent } from '@bpp/shared';
-import nodemailer from 'nodemailer';
+import {
+  EmailDelivery,
+  brevoProvider,
+  createLogger,
+  createPassportEvent,
+  type EmailProvider,
+  type OutgoingEmail,
+  type PassportEvent,
+} from '@bpp/shared';
 import { EmailNotifier } from '../src/notifications/emailNotifier';
 import { LogNotifier } from '../src/notifications/logNotifier';
 import { buildNotification, type Notification, type Notifier } from '../src/notifications/notification';
@@ -33,46 +40,113 @@ describe('LogNotifier', () => {
   });
 });
 
+const fakeProvider = (name: EmailProvider['name'], fail?: string) => {
+  const sent: OutgoingEmail[] = [];
+  const provider: EmailProvider = {
+    name,
+    async send(email) {
+      if (fail) throw new Error(fail);
+      sent.push(email);
+      return { messageId: `${name}-1` };
+    },
+    async verify() {
+      if (fail) throw new Error(fail);
+    },
+  };
+  return { provider, sent };
+};
+
 describe('EmailNotifier', () => {
-  it('sends one email to every configured recipient', async () => {
-    const transporter = nodemailer.createTransport({ jsonTransport: true });
-    const sendMail = jest.spyOn(transporter, 'sendMail');
-    const event = createPassportEvent('passport.deleted', 'p-9');
+  const addresses = { from: 'BatteryPass <from@example.com>', to: ['ops@example.com', 'lead@example.com'] };
+  const notification = buildNotification(createPassportEvent('passport.deleted', 'p-9'));
 
-    await new EmailNotifier(
-      transporter,
-      { from: 'from@example.com', to: ['ops@example.com', 'lead@example.com'] },
-      silentLogger,
-    ).send(buildNotification(event));
+  it('sends one email to every recipient through the first provider', async () => {
+    const smtp = fakeProvider('smtp');
+    const brevo = fakeProvider('brevo');
+    const delivery = new EmailDelivery([smtp.provider, brevo.provider], silentLogger);
 
-    expect(sendMail).toHaveBeenCalledTimes(1);
-    expect(sendMail).toHaveBeenCalledWith(
+    await new EmailNotifier(delivery, addresses, silentLogger).send(notification);
+
+    expect(smtp.sent).toEqual([
       expect.objectContaining({
         to: ['ops@example.com', 'lead@example.com'],
         subject: 'Battery passport deleted',
         text: expect.stringContaining('Battery passport deleted: p-9'),
       }),
+    ]);
+    expect(brevo.sent).toHaveLength(0);
+    expect(delivery.health()).toEqual({ email: 'up', emailProvider: 'smtp' });
+  });
+
+  it('falls back to Brevo when SMTP fails', async () => {
+    const smtp = fakeProvider('smtp', 'Connection timeout');
+    const brevo = fakeProvider('brevo');
+    const delivery = new EmailDelivery([smtp.provider, brevo.provider], silentLogger);
+
+    await new EmailNotifier(delivery, addresses, silentLogger).send(notification);
+
+    expect(brevo.sent).toHaveLength(1);
+    expect(delivery.health()).toEqual({ email: 'up', emailProvider: 'brevo' });
+  });
+
+  it('reports an error when every provider fails', async () => {
+    const delivery = new EmailDelivery(
+      [fakeProvider('smtp', 'Connection timeout').provider, fakeProvider('brevo', 'HTTP 401').provider],
+      silentLogger,
     );
+
+    await expect(new EmailNotifier(delivery, addresses, silentLogger).send(notification)).rejects.toThrow(
+      'HTTP 401',
+    );
+    expect(delivery.health().email).toBe('error');
+  });
+
+  it('is up after start-up checks when any provider works', async () => {
+    const delivery = new EmailDelivery(
+      [fakeProvider('smtp', 'Connection timeout').provider, fakeProvider('brevo').provider],
+      silentLogger,
+    );
+    expect(delivery.health().email).toBe('checking');
+    await delivery.verify();
+    expect(delivery.health().email).toBe('up');
   });
 });
 
-describe('EmailNotifier status', () => {
-  it('reports success and failure of each send', async () => {
-    const transporter = nodemailer.createTransport({ jsonTransport: true });
-    const results: boolean[] = [];
-    const notifier = new EmailNotifier(
-      transporter,
-      { from: 'from@example.com', to: ['ops@example.com'] },
-      silentLogger,
-      (ok) => results.push(ok),
-    );
-    const notification = buildNotification(createPassportEvent('passport.created', 'p-1'));
+describe('Brevo provider', () => {
+  afterEach(() => jest.restoreAllMocks());
 
-    await notifier.send(notification);
-    jest.spyOn(transporter, 'sendMail').mockRejectedValueOnce(new Error('Connection timeout') as never);
-    await expect(notifier.send(notification)).rejects.toThrow('Connection timeout');
+  it('posts the email to the Brevo API with the parsed sender', async () => {
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify({ messageId: '<abc@brevo>' }), { status: 201 }));
 
-    expect(results).toEqual([true, false]);
+    const result = await brevoProvider('key-123').send({
+      from: 'BatteryPass <from@example.com>',
+      to: ['ops@example.com', 'lead@example.com'],
+      subject: 'Battery passport created',
+      text: 'Hello',
+    });
+
+    expect(result.messageId).toBe('<abc@brevo>');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.brevo.com/v3/smtp/email');
+    expect((init?.headers as Record<string, string>)['api-key']).toBe('key-123');
+    expect(JSON.parse(init?.body as string)).toEqual({
+      sender: { name: 'BatteryPass', email: 'from@example.com' },
+      to: [{ email: 'ops@example.com' }, { email: 'lead@example.com' }],
+      subject: 'Battery passport created',
+      textContent: 'Hello',
+    });
+  });
+
+  it('turns an API error into a readable message', async () => {
+    jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify({ message: 'Key not found' }), { status: 401 }));
+
+    await expect(
+      brevoProvider('bad').send({ from: 'a@example.com', to: ['b@example.com'], subject: 's', text: 't' }),
+    ).rejects.toThrow('Brevo API returned HTTP 401: Key not found');
   });
 });
 

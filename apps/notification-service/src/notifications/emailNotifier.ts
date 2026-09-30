@@ -1,31 +1,18 @@
-import type { Logger } from '@bpp/shared';
-import type { Transporter } from 'nodemailer';
+import type { EmailDelivery, Logger } from '@bpp/shared';
 import type { Notification, Notifier } from './notification';
 
-/** Optional channel, enabled only when SMTP settings are provided. */
+/** Optional channel, enabled when SMTP or Brevo is configured together with recipients. */
 export class EmailNotifier implements Notifier {
   readonly channel = 'email';
 
   constructor(
-    private readonly transporter: Transporter,
+    private readonly delivery: EmailDelivery,
     private readonly addresses: { from: string; to: string[] },
     private readonly logger: Logger,
-    /** Told whether each send worked, so /health reflects the latest attempt. */
-    private readonly onResult: (ok: boolean) => void = () => undefined,
   ) {}
 
-  async send(notification: Notification): Promise<void> {
-    try {
-      await this.deliver(notification);
-      this.onResult(true);
-    } catch (err) {
-      this.onResult(false);
-      throw err;
-    }
-  }
-
-  private async deliver({ subject, message, event }: Notification): Promise<void> {
-    const info = await this.transporter.sendMail({
+  async send({ subject, message, event }: Notification): Promise<void> {
+    const { provider, messageId } = await this.delivery.send({
       from: this.addresses.from,
       to: this.addresses.to,
       subject,
@@ -39,7 +26,8 @@ export class EmailNotifier implements Notifier {
     });
     this.logger.info('Notification email sent', {
       eventId: event.eventId,
-      messageId: info.messageId,
+      provider,
+      messageId,
       recipients: this.addresses.to.length,
     });
   }

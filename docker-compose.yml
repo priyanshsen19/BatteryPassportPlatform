@@ -92,6 +92,7 @@ services:
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
       ADMIN_ACCESS_CODE: ${ADMIN_ACCESS_CODE:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
       # Password reset links point at the web app; without SMTP_HOST they are written to the log.
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:3000}
       PASSWORD_RESET_TTL_MINUTES: ${PASSWORD_RESET_TTL_MINUTES:-30}
@@ -181,6 +182,7 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-Battery Passport Platform <no-reply@battery-passport.local>}
       NOTIFICATION_EMAIL_TO: ${NOTIFICATION_EMAIL_TO:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
     # Health endpoint only, published on loopback for local inspection
     ports:
       - '127.0.0.1:${NOTIFICATION_SERVICE_PORT:-4004}:4004'

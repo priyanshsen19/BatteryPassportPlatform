@@ -22,6 +22,8 @@ const envSchema = commonEnvSchema.extend({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string().default('BatteryPass <no-reply@battery-passport.local>'),
+  // Optional: Brevo's HTTPS email API, used when SMTP is not configured or fails (e.g. blocked).
+  BREVO_API_KEY: z.string().trim().optional(),
   // Optional: a code that lets a new account register as admin (or another privileged role).
   ADMIN_ACCESS_CODE: z
     .string()
@@ -72,16 +74,19 @@ export const config = {
     appUrl: normalizeAppUrl(env.PUBLIC_APP_URL),
     ttlMinutes: env.PASSWORD_RESET_TTL_MINUTES,
   },
-  smtp: env.SMTP_HOST
-    ? {
-        host: env.SMTP_HOST,
-        port: env.SMTP_PORT,
-        secure: env.SMTP_SECURE,
-        auth:
-          env.SMTP_USER && env.SMTP_PASSWORD ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } : undefined,
-        from: env.SMTP_FROM,
-      }
-    : undefined,
+  email: {
+    from: env.SMTP_FROM,
+    smtp: env.SMTP_HOST
+      ? {
+          host: env.SMTP_HOST,
+          port: env.SMTP_PORT,
+          secure: env.SMTP_SECURE,
+          auth:
+            env.SMTP_USER && env.SMTP_PASSWORD ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } : undefined,
+        }
+      : undefined,
+    brevoApiKey: env.BREVO_API_KEY || undefined,
+  },
 } as const;
 
 export const logger = createLogger(config.serviceName, {
