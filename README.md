@@ -328,7 +328,8 @@ one is missing or invalid.
 **Email** (auth for reset links, notification for events; logging only when `SMTP_HOST` is empty)
 
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`
-- `NOTIFICATION_EMAIL_TO` (notification): recipient of event notifications.
+- `NOTIFICATION_EMAIL_TO` (notification): recipients of event notifications, separated by commas
+  (e.g. `ops@example.com, lead@example.com`).
 
 The browser only talks to the Next.js server, which calls the services with the server-side URLs
 above, so no `NEXT_PUBLIC_*` variables or secrets reach the browser.

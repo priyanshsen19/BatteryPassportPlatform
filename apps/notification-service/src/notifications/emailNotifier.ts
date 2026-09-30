@@ -8,7 +8,7 @@ export class EmailNotifier implements Notifier {
 
   constructor(
     private readonly transporter: Transporter,
-    private readonly addresses: { from: string; to: string },
+    private readonly addresses: { from: string; to: string[] },
     private readonly logger: Logger,
   ) {}
 
@@ -25,6 +25,10 @@ export class EmailNotifier implements Notifier {
         `Occurred at: ${event.timestamp}`,
       ].join('\n'),
     });
-    this.logger.info('Notification email sent', { eventId: event.eventId, messageId: info.messageId });
+    this.logger.info('Notification email sent', {
+      eventId: event.eventId,
+      messageId: info.messageId,
+      recipients: this.addresses.to.length,
+    });
   }
 }

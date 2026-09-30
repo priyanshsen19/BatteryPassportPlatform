@@ -38,7 +38,7 @@ function createNotifiers(): Notifier[] {
       .verify()
       .then(() => {
         emailStatus = 'up';
-        logger.info('SMTP connection verified', { host: transportOptions.host, to });
+        logger.info('SMTP connection verified', { host: transportOptions.host, recipients: to.length });
       })
       .catch((err: unknown) => {
         emailStatus = 'error';

@@ -4,6 +4,7 @@ import { EmailNotifier } from '../src/notifications/emailNotifier';
 import { LogNotifier } from '../src/notifications/logNotifier';
 import { buildNotification, type Notification, type Notifier } from '../src/notifications/notification';
 import { NotificationDispatcher } from '../src/notifications/notificationDispatcher';
+import { recipientsSchema } from '../src/notifications/recipients';
 
 const silentLogger = createLogger('test', { silent: true });
 
@@ -33,24 +34,45 @@ describe('LogNotifier', () => {
 });
 
 describe('EmailNotifier', () => {
-  it('sends an email through the configured transport', async () => {
+  it('sends one email to every configured recipient', async () => {
     const transporter = nodemailer.createTransport({ jsonTransport: true });
     const sendMail = jest.spyOn(transporter, 'sendMail');
     const event = createPassportEvent('passport.deleted', 'p-9');
 
     await new EmailNotifier(
       transporter,
-      { from: 'from@example.com', to: 'ops@example.com' },
+      { from: 'from@example.com', to: ['ops@example.com', 'lead@example.com'] },
       silentLogger,
     ).send(buildNotification(event));
 
+    expect(sendMail).toHaveBeenCalledTimes(1);
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: 'ops@example.com',
+        to: ['ops@example.com', 'lead@example.com'],
         subject: 'Battery passport deleted',
         text: expect.stringContaining('Battery passport deleted: p-9'),
       }),
     );
+  });
+});
+
+describe('NOTIFICATION_EMAIL_TO', () => {
+  it.each([
+    ['ops@example.com', ['ops@example.com']],
+    ['ops@example.com, lead@example.com', ['ops@example.com', 'lead@example.com']],
+    [
+      'ops@example.com;lead@example.com  qa@example.com',
+      ['ops@example.com', 'lead@example.com', 'qa@example.com'],
+    ],
+    ['Ops@Example.com, ops@example.com,', ['ops@example.com']],
+    ['', []],
+    [undefined, []],
+  ])('parses %p', (value, expected) => {
+    expect(recipientsSchema.parse(value)).toEqual(expected);
+  });
+
+  it('rejects an invalid address', () => {
+    expect(recipientsSchema.safeParse('ops@example.com, not-an-email').success).toBe(false);
   });
 });
 

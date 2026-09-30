@@ -1,5 +1,6 @@
 import { booleanString, commonEnvSchema, createLogger, kafkaEnvSchema, loadEnv } from '@bpp/shared';
 import { z } from 'zod';
+import { recipientsSchema } from './notifications/recipients';
 
 const envSchema = commonEnvSchema.extend(kafkaEnvSchema.shape).extend({
   PORT: z.coerce.number().int().positive().default(4004),
@@ -13,14 +14,16 @@ const envSchema = commonEnvSchema.extend(kafkaEnvSchema.shape).extend({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string().default('Battery Passport Platform <no-reply@battery-passport.local>'),
-  NOTIFICATION_EMAIL_TO: z.string().optional(),
+  // One or more addresses separated by commas; every notification goes to all of them.
+  NOTIFICATION_EMAIL_TO: recipientsSchema,
 });
 
 const env = loadEnv(envSchema);
 
-const smtpConfigured = Boolean(env.SMTP_HOST && env.NOTIFICATION_EMAIL_TO);
+const smtpConfigured = Boolean(env.SMTP_HOST && env.NOTIFICATION_EMAIL_TO.length > 0);
 /** Explains why email is off when it looks half-configured. */
-const smtpMissing = env.SMTP_HOST && !env.NOTIFICATION_EMAIL_TO ? 'NOTIFICATION_EMAIL_TO' : undefined;
+const smtpMissing =
+  env.SMTP_HOST && env.NOTIFICATION_EMAIL_TO.length === 0 ? 'NOTIFICATION_EMAIL_TO' : undefined;
 
 export const config = {
   serviceName: 'notification-service',
@@ -36,7 +39,7 @@ export const config = {
         auth:
           env.SMTP_USER && env.SMTP_PASSWORD ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } : undefined,
         from: env.SMTP_FROM,
-        to: env.NOTIFICATION_EMAIL_TO as string,
+        to: env.NOTIFICATION_EMAIL_TO,
       }
     : undefined,
 } as const;
