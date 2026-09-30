@@ -636,8 +636,9 @@ each message against this schema and logs, for example:
 
 With `SMTP_HOST` and `NOTIFICATION_EMAIL_TO` set it also emails the notification with Nodemailer;
 an email failure is logged and does not stop the log notification. The service checks the SMTP
-login at start-up and reports it on `/health` as `"email": "up"`, `"error"` (the log says why) or
-`"disabled"`.
+login at start-up and reports the result of that check, then of the latest send, on `/health` as
+`"email": "up"`, `"error"` (the log says why) or `"disabled"`. SMTP attempts time out after
+seconds, so an unreachable mail server never holds up the events behind it.
 
 ## Swagger documentation
 

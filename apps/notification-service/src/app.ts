@@ -12,7 +12,8 @@ export function createApp(
     logger,
     corsOrigins: [],
     healthChecks: () => ({ kafka: isConsumerConnected() ? 'up' : 'down' }),
-    // Email is optional, so its state is reported without making the service unhealthy.
+    // Email is optional, so its state (from the start-up check, then the latest send) is reported
+    // without making the service unhealthy.
     healthInfo: () => ({ email: emailStatus() }),
   });
   return finalizeServiceApp(app, logger, false);

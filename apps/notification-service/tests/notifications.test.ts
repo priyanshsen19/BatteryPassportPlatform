@@ -56,6 +56,26 @@ describe('EmailNotifier', () => {
   });
 });
 
+describe('EmailNotifier status', () => {
+  it('reports success and failure of each send', async () => {
+    const transporter = nodemailer.createTransport({ jsonTransport: true });
+    const results: boolean[] = [];
+    const notifier = new EmailNotifier(
+      transporter,
+      { from: 'from@example.com', to: ['ops@example.com'] },
+      silentLogger,
+      (ok) => results.push(ok),
+    );
+    const notification = buildNotification(createPassportEvent('passport.created', 'p-1'));
+
+    await notifier.send(notification);
+    jest.spyOn(transporter, 'sendMail').mockRejectedValueOnce(new Error('Connection timeout') as never);
+    await expect(notifier.send(notification)).rejects.toThrow('Connection timeout');
+
+    expect(results).toEqual([true, false]);
+  });
+});
+
 describe('NOTIFICATION_EMAIL_TO', () => {
   it.each([
     ['ops@example.com', ['ops@example.com']],

@@ -51,6 +51,10 @@ function createMailer(): Mailer {
     port: smtp.port,
     secure: smtp.secure,
     auth: smtp.auth,
+    // Fail within seconds rather than Nodemailer's default of two minutes.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
 
   return {

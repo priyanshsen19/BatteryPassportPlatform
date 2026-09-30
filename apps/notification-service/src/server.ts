@@ -29,8 +29,19 @@ function createNotifiers(): Notifier[] {
 
   if (config.smtp) {
     const { from, to, ...transportOptions } = config.smtp;
-    const transporter = nodemailer.createTransport(transportOptions);
-    notifiers.push(new EmailNotifier(transporter, { from, to }, logger));
+    const transporter = nodemailer.createTransport({
+      ...transportOptions,
+      // Fail within seconds rather than Nodemailer's default of two minutes, so an unreachable
+      // SMTP server cannot hold up the events queued behind it.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
+    });
+    notifiers.push(
+      new EmailNotifier(transporter, { from, to }, logger, (ok) => {
+        emailStatus = ok ? 'up' : 'error';
+      }),
+    );
 
     // Checked in the background so a slow SMTP server never delays consuming events.
     emailStatus = 'checking';
