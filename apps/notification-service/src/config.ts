@@ -50,6 +50,7 @@ export const config = {
     hasProvider && env.NOTIFICATION_EMAIL_TO.length > 0
       ? {
           from: senderAddress(env.SMTP_FROM, env.SMTP_USER),
+          fromConfigured: Boolean(env.SMTP_FROM),
           to: env.NOTIFICATION_EMAIL_TO,
           smtp: env.SMTP_HOST
             ? {

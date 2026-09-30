@@ -46,6 +46,12 @@ function createNotifiers(delivery: EmailDelivery): Notifier[] {
 
   if (config.email && delivery.enabled) {
     notifiers.push(new EmailNotifier(delivery, { from: config.email.from, to: config.email.to }, logger));
+    if (!config.email.fromConfigured) {
+      logger.warn(
+        'SMTP_FROM is not set; sending as the SMTP login, which providers such as Brevo reject unless it is a verified sender',
+        { from: config.email.from },
+      );
+    }
     // Checked in the background so a slow provider never delays consuming events.
     void delivery.verify();
   } else if (config.emailMissing) {

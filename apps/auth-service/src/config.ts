@@ -86,6 +86,7 @@ export const config = {
   },
   email: {
     from: senderAddress(env.SMTP_FROM, env.SMTP_USER),
+    fromConfigured: Boolean(env.SMTP_FROM),
     smtp: env.SMTP_HOST
       ? {
           host: env.SMTP_HOST,

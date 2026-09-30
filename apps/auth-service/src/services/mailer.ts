@@ -54,6 +54,13 @@ function createMailer(): Mailer {
     };
   }
 
+  if (!config.email.fromConfigured) {
+    logger.warn(
+      'SMTP_FROM is not set; sending as the SMTP login, which providers such as Brevo reject unless it is a verified sender',
+      { from: config.email.from },
+    );
+  }
+
   return {
     verify: () => delivery.verify(),
 
