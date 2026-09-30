@@ -32,7 +32,7 @@ through every flow on the live deployment or locally.
 
 ## Contents
 
-1. [Screenshots](#screenshots)
+1. [Screenshots](#screenshots) (including the [live infrastructure](#live-infrastructure))
 2. [Architecture](#architecture)
 3. [Services](#services)
 4. [Technology stack](#technology-stack)
@@ -103,6 +103,24 @@ Captured from the running Docker Compose stack with sample data.
     <td><img src="docs/screenshots/mobile-passport.png" alt="Passport card on a phone"></td>
   </tr>
 </table>
+
+### Live infrastructure
+
+The hosted deployment uses managed services: MongoDB Atlas (one database per service), AWS S3 for
+document files, and Redpanda Cloud for Kafka.
+
+**MongoDB Atlas:** `auth_db`, `passport_db` and `document_db`, each owned by one service.
+
+![MongoDB Atlas databases and passports](docs/screenshots/live-mongodb.png)
+
+**AWS S3:** a private bucket with objects stored as `documents/{passportId}/{uuid}-{fileName}`.
+
+![S3 bucket with an uploaded document](docs/screenshots/live-s3.png)
+
+**Kafka (Redpanda):** the `battery-passport-events` topic with `passport.created` and
+`passport.updated` events, keyed by passport id.
+
+![Redpanda topic with passport events](docs/screenshots/live-kafka.png)
 
 ## Architecture
 
