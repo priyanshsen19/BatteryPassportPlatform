@@ -13,7 +13,9 @@ const envSchema = commonEnvSchema.extend(kafkaEnvSchema.shape).extend({
   SMTP_SECURE: booleanString(false),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
-  SMTP_FROM: z.string().default('Battery Passport Platform <no-reply@battery-passport.local>'),
+  // Sender for SMTP and Brevo. Defaults to the SMTP login, since providers (Brevo, Gmail) only
+  // deliver mail from an address the account owns or has verified.
+  SMTP_FROM: z.string().trim().optional(),
   // One or more addresses separated by commas; every notification goes to all of them.
   NOTIFICATION_EMAIL_TO: recipientsSchema,
   // Optional: Brevo's HTTPS email API, used when SMTP is not configured or fails (e.g. blocked).
@@ -23,6 +25,14 @@ const envSchema = commonEnvSchema.extend(kafkaEnvSchema.shape).extend({
 });
 
 const env = loadEnv(envSchema);
+
+/** "BatteryPass <login>" when no sender is configured; a placeholder only for local logging. */
+function senderAddress(from: string | undefined, smtpUser: string | undefined): string {
+  if (from) return from;
+  return smtpUser?.includes('@')
+    ? `BatteryPass <${smtpUser}>`
+    : 'BatteryPass <no-reply@battery-passport.local>';
+}
 
 const hasProvider = Boolean(env.SMTP_HOST || env.BREVO_API_KEY);
 /** Explains why email is off when it looks half-configured. */
@@ -39,7 +49,7 @@ export const config = {
   email:
     hasProvider && env.NOTIFICATION_EMAIL_TO.length > 0
       ? {
-          from: env.SMTP_FROM,
+          from: senderAddress(env.SMTP_FROM, env.SMTP_USER),
           to: env.NOTIFICATION_EMAIL_TO,
           smtp: env.SMTP_HOST
             ? {

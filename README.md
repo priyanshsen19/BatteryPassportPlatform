@@ -331,7 +331,8 @@ is configured)
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`: SMTP delivery.
 - `BREVO_API_KEY`: optional fallback through Brevo's HTTPS API, used when SMTP is not set or
   fails (some hosts block outbound SMTP).
-- `SMTP_FROM`: sender for both; with Brevo it must be a verified sender address.
+- `SMTP_FROM`: sender for both (defaults to `SMTP_USER`); with Brevo it must be a verified
+  sender address.
 - `NOTIFICATION_FILE` (notification): mock email; every notification is also appended to this
   text file (`/tmp/notifications.txt` in Compose).
 - `NOTIFICATION_EMAIL_TO` (notification): recipients of event notifications, separated by commas

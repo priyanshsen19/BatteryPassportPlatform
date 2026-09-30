@@ -146,5 +146,7 @@ services:
         sync: false # optional
       - key: NOTIFICATION_EMAIL_TO
         sync: false # optional; comma-separated, e.g. ops@example.com, lead@example.com
+      - key: SMTP_FROM
+        sync: false # optional; defaults to SMTP_USER; must be a verified Brevo sender
       - key: BREVO_API_KEY
         sync: false # optional; email fallback over HTTPS when SMTP fails

@@ -21,7 +21,9 @@ const envSchema = commonEnvSchema.extend({
   SMTP_SECURE: booleanString(false),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
-  SMTP_FROM: z.string().default('BatteryPass <no-reply@battery-passport.local>'),
+  // Sender for SMTP and Brevo. Defaults to the SMTP login, since providers (Brevo, Gmail) only
+  // deliver mail from an address the account owns or has verified.
+  SMTP_FROM: z.string().trim().optional(),
   // Optional: Brevo's HTTPS email API, used when SMTP is not configured or fails (e.g. blocked).
   BREVO_API_KEY: z.string().trim().optional(),
   // Optional: a code that lets a new account register as admin (or another privileged role).
@@ -38,6 +40,14 @@ const envSchema = commonEnvSchema.extend({
 });
 
 const env = loadEnv(envSchema);
+
+/** "BatteryPass <login>" when no sender is configured; a placeholder only for local logging. */
+function senderAddress(from: string | undefined, smtpUser: string | undefined): string {
+  if (from) return from;
+  return smtpUser?.includes('@')
+    ? `BatteryPass <${smtpUser}>`
+    : 'BatteryPass <no-reply@battery-passport.local>';
+}
 
 /** Accepts `bpp-web.onrender.com` or a full URL and returns its origin. */
 function normalizeAppUrl(value: string): string {
@@ -75,7 +85,7 @@ export const config = {
     ttlMinutes: env.PASSWORD_RESET_TTL_MINUTES,
   },
   email: {
-    from: env.SMTP_FROM,
+    from: senderAddress(env.SMTP_FROM, env.SMTP_USER),
     smtp: env.SMTP_HOST
       ? {
           host: env.SMTP_HOST,
