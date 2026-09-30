@@ -10,7 +10,8 @@ name: Keep alive
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    # Offset from :00/:05, when GitHub's scheduler is busiest and delays or drops runs.
+    - cron: '3-58/5 * * * *'
   workflow_dispatch:
 
 permissions: {}
