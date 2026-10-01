@@ -11,6 +11,12 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { AuthFormError } from '@/components/auth/auth-form-error';
 import { GoogleSignIn } from '@/components/auth/google-sign-in';
+import {
+  PendingLabel,
+  SlowStartNote,
+  usePendingMessage,
+  type PendingStep,
+} from '@/components/auth/pending-status';
 import { Button } from '@/components/ui/button';
 import { Field, Input, fieldAria } from '@/components/ui/form-controls';
 import { Card } from '@/components/ui/surface';
@@ -23,6 +29,22 @@ const ACCOUNT_TYPES = [
 ] as const;
 
 type AccountType = (typeof ACCOUNT_TYPES)[number]['value'];
+
+const SIGN_UP_STEPS: PendingStep[] = [
+  { after: 0, text: 'Creating your account…' },
+  { after: 4, text: 'Saving your details securely…' },
+  { after: 10, text: 'Waking up the platform…' },
+  { after: 20, text: 'Preparing your dashboard…' },
+  { after: 35, text: 'Almost there…' },
+];
+
+const ADMIN_SIGN_UP_STEPS: PendingStep[] = [
+  { after: 0, text: 'Checking your access code…' },
+  { after: 4, text: 'Creating your admin account…' },
+  { after: 10, text: 'Waking up the platform…' },
+  { after: 20, text: 'Preparing your dashboard…' },
+  { after: 35, text: 'Almost there…' },
+];
 
 const formSchema = registerSchema
   .pick({ email: true, password: true })
@@ -96,6 +118,10 @@ export default function RegisterPage() {
     defaultValues: { email: '', password: '', accountType: 'user', accessCode: '' },
   });
   const accountType = watch('accountType');
+  const pendingMessage = usePendingMessage(
+    isSubmitting,
+    accountType === 'admin' ? ADMIN_SIGN_UP_STEPS : SIGN_UP_STEPS,
+  );
 
   const chooseAccountType = (value: AccountType) => {
     setValue('accountType', value);
@@ -178,12 +204,15 @@ export default function RegisterPage() {
           </Field>
         )}
         <Button type="submit" className="mt-2 w-full" loading={isSubmitting}>
-          {isSubmitting
-            ? 'Creating account…'
-            : accountType === 'admin'
-              ? 'Create admin account'
-              : 'Create account'}
+          {pendingMessage ? (
+            <PendingLabel text={pendingMessage} />
+          ) : accountType === 'admin' ? (
+            'Create admin account'
+          ) : (
+            'Create account'
+          )}
         </Button>
+        <SlowStartNote active={isSubmitting} />
       </form>
 
       {accountType === 'user' && <GoogleSignIn />}

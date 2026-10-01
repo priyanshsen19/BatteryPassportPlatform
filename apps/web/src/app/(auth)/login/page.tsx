@@ -9,10 +9,24 @@ import { Suspense, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { AuthFormError } from '@/components/auth/auth-form-error';
 import { GOOGLE_ERRORS, GoogleSignIn } from '@/components/auth/google-sign-in';
+import {
+  PendingLabel,
+  SlowStartNote,
+  usePendingMessage,
+  type PendingStep,
+} from '@/components/auth/pending-status';
 import { Button } from '@/components/ui/button';
 import { Field, Input, fieldAria } from '@/components/ui/form-controls';
 import { Card } from '@/components/ui/surface';
 import { ApiError, authApi } from '@/lib/api-client';
+
+const SIGN_IN_STEPS: PendingStep[] = [
+  { after: 0, text: 'Signing in…' },
+  { after: 4, text: 'Verifying your credentials…' },
+  { after: 10, text: 'Waking up the platform…' },
+  { after: 20, text: 'Loading your dashboard…' },
+  { after: 35, text: 'Almost there…' },
+];
 
 /** Only allow same-site relative redirects after login. */
 function safeNext(value: string | null): string {
@@ -32,6 +46,7 @@ function LoginForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } });
+  const pendingMessage = usePendingMessage(isSubmitting, SIGN_IN_STEPS);
 
   const onSubmit = async (values: LoginInput) => {
     setFormError(undefined);
@@ -95,8 +110,9 @@ function LoginForm() {
           Forgot password?
         </Link>
         <Button type="submit" className="mt-2 w-full" loading={isSubmitting}>
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
+          {pendingMessage ? <PendingLabel text={pendingMessage} /> : 'Sign in'}
         </Button>
+        <SlowStartNote active={isSubmitting} />
       </form>
 
       <GoogleSignIn next={params.get('next') ?? undefined} />

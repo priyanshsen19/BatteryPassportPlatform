@@ -9,6 +9,7 @@ import { Suspense, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { AuthFormError } from '@/components/auth/auth-form-error';
+import { SlowStartNote } from '@/components/auth/pending-status';
 import { Button } from '@/components/ui/button';
 import { Field, Input, fieldAria } from '@/components/ui/form-controls';
 import { Card } from '@/components/ui/surface';
@@ -106,6 +107,7 @@ function ResetPasswordForm() {
         <Button type="submit" className="mt-2 w-full" loading={isSubmitting}>
           {isSubmitting ? 'Updating password…' : 'Update password'}
         </Button>
+        <SlowStartNote active={isSubmitting} />
       </form>
 
       {formError && (

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { AuthFormError } from '@/components/auth/auth-form-error';
+import { SlowStartNote } from '@/components/auth/pending-status';
 import { Button } from '@/components/ui/button';
 import { Field, Input, fieldAria } from '@/components/ui/form-controls';
 import { Card } from '@/components/ui/surface';
@@ -80,6 +81,7 @@ export default function ForgotPasswordPage() {
         <Button type="submit" className="mt-2 w-full" loading={isSubmitting}>
           {isSubmitting ? 'Sending link…' : 'Send reset link'}
         </Button>
+        <SlowStartNote active={isSubmitting} />
       </form>
 
       <p className="mt-6 text-center text-[13px] text-ink-muted">
